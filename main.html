@@ -37,45 +37,24 @@
 
     <div class="container" style="margin: 0 0 0 0" align="center">
         <div class="row">
-            <!--<div class="col">-->
-                <!--<div class="input-group">-->
-                    <!--<div class="custom-file">-->
-                        <!--<input type="file" class="custom-file-input" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04">-->
-                        <!--<label class="custom-file-label" for="inputGroupFile04">Choose file</label>-->
-                    <!--</div>-->
-                    <!--<div class="input-group-append">-->
-                        <!--<button class="btn btn-outline-secondary" type="button" id="upload_button">Upload</button>-->
-                    <!--</div>-->
-                <!--</div>-->
-            <!--</div>-->
 
             <div class="col">
-
+                <h3>Before</h3>
                 <form action="" method="post" enctype="multipart/form-data">
                     <input type="file" name="file-to-upload" onchange="readURL(this);" >
                     <input type="submit" value="Upload">
                 </form>
                 <img id="image_for_proc" src="#" alt="">
-                <script>
-                    function readURL(input) {
-                        if (input.files && input.files[0]) {
-                            var reader = new FileReader();
-                            reader.onload = function (e) {
-                                $('#image_for_proc')
-                                    .attr('src', e.target.result)
-                                    .width(800);
-                                    // .height(200);
-                            };
-                            reader.readAsDataURL(input.files[0]);
-                        }
-                    }
 
-                </script>
 
+            </div>
+
+            <div class="col">
+                <h3>After</h3>
             </div>
         </div>
     </div>
 
 </body>
-<script src="img_proc.js"></script>
+<script src="./img_proc.js"></script>
 </html>

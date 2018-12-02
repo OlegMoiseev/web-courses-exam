@@ -1,5 +1,6 @@
 const express = require('express');
 const multer = require('multer');
+const cv = require('opencv');
 
 
 const app = express();
@@ -11,6 +12,8 @@ app.use(
         return next();
     });
 
+var upload = multer({ storage: storage });
+
 var storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'uploads/')
@@ -19,8 +22,6 @@ var storage = multer.diskStorage({
         cb(null, file.originalname)
     }
 });
-
-var upload = multer({ storage: storage });
 
 
 app.get('/', (req, res) => {
@@ -31,6 +32,28 @@ app.get('/', (req, res) => {
 // It's very crucial that the file name matches the name attribute in your html
 app.post('/', upload.single('file-to-upload'), (req, res) => {
     console.log(req.file.originalname);
+
+    var face_detector = cv.FACE_CASCADE;
+
+    cv.readImage('./uploads/' + req.file.originalname, function (err, im)
+    {
+        if (im.width() < 1 || im.height() < 1)
+        {
+            throw new Error('Image has no size');
+        }
+        im.detectObject(face_detector, {}, function(err, faces)
+        {
+            for (var i = 0; i < faces.length; i++)
+            {
+                var face = faces[i];
+                im.ellipse(face.x + face.width / 2, face.y + face.height / 2, face.width / 2, face.height / 2, [255, 255, 0], 3);
+            }
+            im.save('./results/save.jpg');
+        });
+    });
+
+
+
     res.redirect('/');
 });
 
