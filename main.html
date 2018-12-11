@@ -18,7 +18,7 @@
     <title>Image processing - OpenCV</title>
 </head>
 
-<body onload="getName()">
+<body onload="getName(), getFilters()">
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a class="navbar-brand" href="#">Image processing</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
@@ -83,7 +83,6 @@
                         $('#image_for_proc')
                             .attr('src', e.target.result)
                             .width('50%');
-                        // .height(200);
                     };
                     reader.readAsDataURL(input.files[0]);
                 }
@@ -91,20 +90,21 @@
         </script>
 
         <div class="col-6">
-            <button id="simpleButton"
-                    type="button"
-                    class="btn btn-primary"
-                    onclick="getFilters()"
+            <h3>Available procedures:</h3>
 
-            >
-                Get filters!
-            </button>
             <script>
                 function getFilters() {
                     const xhr = new XMLHttpRequest();
                     xhr.open('GET', '/getFilters', true);
                     xhr.onload = function () {
-                        document.getElementById("filters").innerHTML = xhr.responseText;
+                        let js = JSON.parse(xhr.responseText);
+                        for (let i = 0; i < js.length; ++i){
+                            document.getElementById("filters").innerHTML +=
+                                '<div><input type="checkbox" name="' + js[i].name + '">\n' +
+                                '<label for="' + js[i].name + '">' + js[i].id + ' ' + js[i].name + '</label>\n' +
+                                '<input type="text" id="' + js[i].name + 'Params" class="form-control" placeholder="Enter parameters"></div>';
+                        }
+
                     };
                     xhr.onerror = function () {
                         console.log("Some error occurred - msg from onerror func");
@@ -112,7 +112,22 @@
                     xhr.send();
                 }
             </script>
-            <p id="filters"></p>
+            <div id="filters"></div>
+            <button onclick="checkbox_test()">TEST</button>
+            <script>
+                function checkbox_test() {
+                    let input_obj = document.getElementsByTagName('input');
+                    var js = "{";
+                    for (let i = 0; i < input_obj.length; i++) {
+                        if (input_obj[i].type === 'checkbox' && input_obj[i].checked === true) {
+                            js += '{ "id":"' + input_obj[i].name + '", "parameters":[' + input_obj[i+1].value + ']}';
+                            // console.log(input_obj[i].name + " with params: " + input_obj[i+1].value);
+                        }
+                    }
+                    js += '}';
+                    console.log(js);
+                }
+            </script>
         </div>
     </div>
 </div>

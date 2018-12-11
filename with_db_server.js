@@ -11,7 +11,8 @@ const storage = multer.diskStorage({
         callback(null, './uploads')
     }, // this saves your file into a directory called "uploads"
     filename: function (req, file, callback) {
-        callback(null, file.originalname)
+        let d = new Date();
+        callback(null, req.session.username + '-' + d.getMilliseconds() + '-' + file.originalname)
     }
 });
 
@@ -20,9 +21,9 @@ const app = express();
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
-app.use(session({ secret: 'keyboard cat', cookie: { maxAge: 120000 }, resave: false, saveUninitialized: false}));
+app.use(session({ secret: 'keyboard cat', resave: false, saveUninitialized: false}));
 
-
+// , cookie: { maxAge: 120000 }
 
 
 app.get('/', (req, res, next) => {
