@@ -27,17 +27,9 @@
     <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
             <li class="nav-item active">
-                <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+                <a class="nav-link" href="/login">Sign in!<span class="sr-only">(current)</span></a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">Features</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">Pricing</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link disabled" href="#">Disabled</a>
-            </li>
+
         </ul>
     </div>
 </nav>
@@ -63,38 +55,51 @@
             <input type="text" class="form-control" id="password" placeholder="Secret pass!">
 
             <p></p>
-            <div class="btn btn-success" onclick="sendData()">Send</div>
+            <div class="btn btn-success" onclick="sendData()">Sign up</div>
 
 
         </form>
         <script>
             function sendData() {
-                let req = '{"nick":"' +
-                    document.getElementById('nickInput').value +
-                    '", "first_name":"' +
-                    document.getElementById('fnameInput').value +
-                    '", "last_name":"' +
-                    document.getElementById('lnameInput').value +
-                    '", "password":"' +
-                    document.getElementById('password').value +
-                    '"}';
+                if (document.getElementById('nickInput').value.length > 0 &&
+                    document.getElementById('fnameInput').value.length > 0 &&
+                    document.getElementById('lnameInput').value.length > 0 &&
+                    document.getElementById('password').value.length > 0) {
+                    document.getElementById("dangerAlert").style.display = 'none';
 
 
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", "/register", true);
-                xhr.onreadystatechange = function () {
-                    if (this.responseText != 'OK') {
-                        document.getElementById("dangerAlert").innerHTML = this.responseText;
-                        document.getElementById("dangerAlert").style.display = 'block';
-                        console.log(this.responseText);
-                    } else {
-                        window.location.replace("/login");
-                    }
-                };
+                    let req = '{"nick":"' +
+                        document.getElementById('nickInput').value +
+                        '", "first_name":"' +
+                        document.getElementById('fnameInput').value +
+                        '", "last_name":"' +
+                        document.getElementById('lnameInput').value +
+                        '", "password":"' +
+                        document.getElementById('password').value +
+                        '"}';
 
-                xhr.setRequestHeader("Content-type", "application/json");
 
-                xhr.send(req);
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST", "/register", true);
+                    xhr.onreadystatechange = function () {
+                        if (this.responseText != 'OK') {
+                            document.getElementById("dangerAlert").innerHTML = this.responseText;
+                            document.getElementById("dangerAlert").style.display = 'block';
+                            console.log(this.responseText);
+                        } else {
+                            window.location.replace("/login");
+                        }
+                    };
+
+                    xhr.setRequestHeader("Content-type", "application/json");
+
+                    xhr.send(req);
+                }
+                else
+                {
+                    document.getElementById("dangerAlert").innerHTML = 'Enter not-NULL data in fields!';
+                    document.getElementById("dangerAlert").style.display = 'block';
+                }
             }
         </script>
         </div>

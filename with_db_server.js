@@ -1,8 +1,9 @@
 const express = require('express');
 const multer = require('multer');
 const pgp = require("pg-promise")(/*options*/);
-const db = pgp("Супер-секретные ключи");
+const db = pgp("postgres://awsadmin:oleg12537@proc-img-db.cm7oierctxts.eu-west-2.rds.amazonaws.com:5432/awsadmin");
 var bodyParser = require('body-parser');
+var session = require('express-session');
 
 
 const storage = multer.diskStorage({
@@ -19,15 +20,29 @@ const app = express();
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
+app.use(session({ secret: 'keyboard cat', cookie: { maxAge: 120000 }, resave: false, saveUninitialized: false}));
+
+
+
+
+app.get('/', (req, res, next) => {
+    if (req.session.username) {
+        res.sendFile(__dirname + '/main.html');
+    } else {
+        console.log("Go to login page");
+
+        res.sendFile(__dirname + '/login.html');
+    }
+});
 
 
 app.get('/register', (req, res) => {
     res.sendFile(__dirname + '/register.html');
 });
 
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/main.html');
-});
+// app.get('/', (req, res) => {
+//     res.sendFile(__dirname + '/main.html');
+// });
 
 app.get('/login', (req, res) => {
     res.sendFile(__dirname + '/login.html');
@@ -90,6 +105,7 @@ app.post("/login", (request, response) => {
             console.log("Nick exists! Checking...");
             if (data.password == user.password) {
                 console.log("OK! Redirecting now");
+                request.session.username = user.nick;
                 response.send('OK');
             } else {
                 response.send("Password is wrong!!!");
