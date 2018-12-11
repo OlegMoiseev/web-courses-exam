@@ -40,10 +40,6 @@ app.get('/register', (req, res) => {
     res.sendFile(__dirname + '/register.html');
 });
 
-// app.get('/', (req, res) => {
-//     res.sendFile(__dirname + '/main.html');
-// });
-
 app.get('/login', (req, res) => {
     res.sendFile(__dirname + '/login.html');
 });
@@ -64,6 +60,10 @@ app.get('/getFilters', (req, res) => {
         .catch(function (error) {
             console.log("ERROR:", error);
         });
+});
+
+app.get('/getName', (req, res) => {
+    res.send("Username: " + req.session.username);
 });
 
 app.post("/register", function (request, response) {
