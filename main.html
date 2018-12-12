@@ -25,40 +25,40 @@
             aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
-        <div class="col-6">
+    <div class="col-6">
 
-            <div class="collapse navbar-collapse navbar-nav" id="navbarNav">
+        <div class="collapse navbar-collapse navbar-nav" id="navbarNav">
 
-                <li class="nav-item active">
-                    <a class="nav-link" href="/">Home<span class="sr-only">(current)</span></a>
-                </li>
-                <li class="nav-item active">
-                    <a class="nav-link" id="accName"><span class="sr-only">(current)</span></a>
-                </li>
-                <script>
-                    function getName() {
-                        const xhr = new XMLHttpRequest();
-                        xhr.open('GET', '/getName', true);
-                        xhr.onload = function () {
-                            document.getElementById("accName").innerHTML = xhr.responseText;
-                        };
-                        xhr.onerror = function () {
-                            console.log("Some error occurred - msg from onerror func");
-                        };
-                        xhr.send();
-                    }
-                </script>
+            <li class="nav-item active">
+                <a class="nav-link" href="/">Home<span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" id="accName"><span class="sr-only">(current)</span></a>
+            </li>
+            <script>
+                function getName() {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', '/getName', true);
+                    xhr.onload = function () {
+                        document.getElementById("accName").innerHTML = xhr.responseText;
+                    };
+                    xhr.onerror = function () {
+                        console.log("Some error occurred - msg from onerror func");
+                    };
+                    xhr.send();
+                }
+            </script>
 
 
-            </div>
         </div>
-        <div class="col-6">
-            <div class="collapse navbar-collapse navbar-nav" id="navbarNav2">
-                <li class="nav-item active">
-                    <a class="nav-link" href="/login">Logout <span class="sr-only">(current)</span></a>
-                </li>
-            </div>
+    </div>
+    <div class="col-6">
+        <div class="collapse navbar-collapse navbar-nav" id="navbarNav2">
+            <li class="nav-item active">
+                <a class="nav-link" href="/login">Logout <span class="sr-only">(current)</span></a>
+            </li>
         </div>
+    </div>
 </nav>
 
 <div class="container" style="margin: 0 0 0 0" align="center">
@@ -68,7 +68,7 @@
             <h3>Before</h3>
             <form action="" method="post" enctype="multipart/form-data">
                 <input type="file" name="file-to-upload" onchange="readURL(this);">
-                <input type="submit" value="Upload">
+                <input type="submit" value="Upload" onclick="sendJson()">
             </form>
             <p></p>
             <img id="image_for_proc" src="#" alt="">
@@ -98,10 +98,10 @@
                     xhr.open('GET', '/getFilters', true);
                     xhr.onload = function () {
                         let js = JSON.parse(xhr.responseText);
-                        for (let i = 0; i < js.length; ++i){
+                        for (let i = 0; i < js.length; ++i) {
                             document.getElementById("filters").innerHTML +=
-                                '<div><input type="checkbox" name="' + js[i].name + '">\n' +
-                                '<label for="' + js[i].name + '">' + js[i].id + ' ' + js[i].name + '</label>\n' +
+                                '<div><input type="checkbox" name="' + js[i].id + '">\n' +
+                                '<label for="' + js[i].id + '">' + js[i].id + ' ' + js[i].name + '</label>\n' +
                                 '<input type="text" id="' + js[i].name + 'Params" class="form-control" placeholder="Enter parameters"></div>';
                         }
 
@@ -113,18 +113,25 @@
                 }
             </script>
             <div id="filters"></div>
-            <button onclick="checkbox_test()">TEST</button>
+
             <script>
-                function checkbox_test() {
+                function sendJson() {
                     let input_obj = document.getElementsByTagName('input');
-                    var js = "{";
+                    var js = "[";
                     for (let i = 0; i < input_obj.length; i++) {
                         if (input_obj[i].type === 'checkbox' && input_obj[i].checked === true) {
-                            js += '{ "id":"' + input_obj[i].name + '", "parameters":[' + input_obj[i+1].value + ']}';
-                            // console.log(input_obj[i].name + " with params: " + input_obj[i+1].value);
+                            js += '{ "id":"' + input_obj[i].name + '", "parameters":"{' + input_obj[i + 1].value + '}"},';
                         }
                     }
-                    js += '}';
+                    if (js.length > 1) js = js.substring(0, js.length - 1);
+                    js += ']';
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST", "/addImage", true);
+                    xhr.setRequestHeader("Content-type", "application/json");
+
+                    xhr.send(js);
+
                     console.log(js);
                 }
             </script>

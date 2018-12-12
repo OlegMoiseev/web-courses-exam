@@ -5,14 +5,36 @@ const db = pgp("postgres://awsadmin:oleg12537@proc-img-db.cm7oierctxts.eu-west-2
 var bodyParser = require('body-parser');
 var session = require('express-session');
 
-
+var curImg = "";
+var stroka = "";
+var userId = 7;
 const storage = multer.diskStorage({
     destination: function (req, file, callback) {
         callback(null, './uploads')
     }, // this saves your file into a directory called "uploads"
     filename: function (req, file, callback) {
         let d = new Date();
-        callback(null, req.session.username + '-' + d.getMilliseconds() + '-' + file.originalname)
+        // curImg = req.session.username + '-' + d.getMilliseconds() + '-' + file.originalname;
+        curImg = req.session.username + '-' + file.originalname;
+
+        db.one("SELECT users.id FROM users WHERE users.nickname = '" + req.session.username + "'")
+            .then(function (data) {
+                userId = data.id;
+            })
+            .catch(function (error) {
+                console.log("ERROR:", error.code);
+            });
+        stroka = "INSERT INTO raw_images (id_creator, link) VALUES (" + userId + ", './uploads/" + curImg + "')";
+
+        console.log(stroka);
+        db.none(stroka)
+            .then(function () {
+            })
+            .catch(function (error) {
+                console.log("ERROR:", error.code);
+                console.log("ERROR details:", error.detail);
+            });
+        callback(null, curImg)
     }
 });
 
@@ -90,7 +112,6 @@ app.post("/register", function (request, response) {
                 response.send("Nickname already exists!");
             }
         });
-    // response.redirect('/login');
 
 });
 
@@ -120,6 +141,48 @@ app.post("/login", (request, response) => {
                 response.send("Nickname does not exists!");
             }
         });
+});
+
+var params = [];
+app.post("/addImage", (request, response) => {
+    params = request.body;
+
+    var idRaw = 0;
+    let re = "SELECT raw_images.id FROM raw_images WHERE raw_images.id_creator = '" + userId + "'";
+    console.log(re);
+    db.one(re)
+        .then(function (data) {
+
+            idRaw = data.id;
+        })
+        .catch(function (error) {
+            console.log("ERROR into addImg select:", error.code);
+        });
+
+    let dbseq = "INSERT INTO processed_images (id_raw_image, link) VALUES (" + idRaw + ", './uploads/" + curImg + "')";
+
+    db.none(dbseq).catch(function (error) {
+        console.log("ERROR in addImg insert:", error.code);
+    });
+
+
+    let r = [];
+    for (let i = 0; i < params.length; ++i){
+        r.push("INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES" +
+            "(" + params[i].id + ", " + curImg + ", " + i + ", '" + params[i].parameters + "')");
+    }
+    db.none("BEGIN").catch(function (error) {
+        console.log("ERROR in start trans:", error.code);
+    });
+    for (let i = 0; i < r.length; ++i){
+        db.none(r[i]).catch(function (error) {
+            console.log("ERROR into trans:", error.code);
+        });
+    }
+    db.none("COMMIT").catch(function (error) {
+        console.log("ERROR in end trans:", error.code);
+    });
+
 });
 
 
