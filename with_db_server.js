@@ -2,32 +2,33 @@ const express = require('express');
 const multer = require('multer');
 const pgp = require("pg-promise")(/*options*/);
 const db = pgp("postgres://awsadmin:oleg12537@proc-img-db.cm7oierctxts.eu-west-2.rds.amazonaws.com:5432/awsadmin");
-var bodyParser = require('body-parser');
-var session = require('express-session');
+const bodyParser = require('body-parser');
+const session = require('express-session');
 
-var curImg = "";
-var stroka = "";
-var userId = 7;
+let curImg = "";
+let userId = 7;
 const storage = multer.diskStorage({
     destination: function (req, file, callback) {
         callback(null, './uploads')
-    }, // this saves your file into a directory called "uploads"
+    },
     filename: function (req, file, callback) {
         let d = new Date();
         // curImg = req.session.username + '-' + d.getMilliseconds() + '-' + file.originalname;
         curImg = req.session.username + '-' + file.originalname;
 
-        db.one("SELECT users.id FROM users WHERE users.nickname = '" + req.session.username + "'")
+        let db_req = "SELECT users.id FROM users WHERE users.nickname = $1";
+        db.one(db_req, req.session.username)
             .then(function (data) {
                 userId = data.id;
             })
             .catch(function (error) {
                 console.log("ERROR:", error.code);
             });
-        stroka = "INSERT INTO raw_images (id_creator, link) VALUES (" + userId + ", './uploads/" + curImg + "')";
 
-        console.log(stroka);
-        db.none(stroka)
+        let addrCurImg = "./uploads/" + curImg;
+        db_req = "INSERT INTO raw_images (id_creator, link) VALUES ($1, $2)";
+
+        db.none(db_req, [userId, addrCurImg])
             .then(function () {
             })
             .catch(function (error) {
@@ -41,14 +42,14 @@ const storage = multer.diskStorage({
 const app = express();
 
 app.use(bodyParser.json()); // support json encoded bodies
-app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 
-app.use(session({ secret: 'keyboard cat', resave: false, saveUninitialized: false}));
+app.use(session({secret: 'keyboard cat', resave: false, saveUninitialized: false}));
 
 // , cookie: { maxAge: 120000 }
 
 
-app.get('/', (req, res, next) => {
+app.get('/', (req, res) => {
     if (req.session.username) {
         res.sendFile(__dirname + '/main.html');
     } else {
@@ -67,7 +68,7 @@ app.get('/login', (req, res) => {
     res.sendFile(__dirname + '/login.html');
 });
 
-const upload = multer({storage : storage});
+const upload = multer({storage: storage});
 
 app.post('/', upload.single('file-to-upload'), (req, res) => {
     console.log(req.file.originalname);
@@ -92,14 +93,9 @@ app.get('/getName', (req, res) => {
 app.post("/register", function (request, response) {
     user = request.body;
 
-    // TODO: replace it, but I haven't enough time for it
-    db_req = "INSERT INTO users (nickname, first_name, last_name, password) VALUES ('" +
-        user.nick + "', '" +
-        user.first_name + "', '" +
-        user.last_name + "', '" +
-        user.password + "')";
 
-    db.none(db_req)
+    db_req = "INSERT INTO users (nickname, first_name, last_name, password) VALUES ($1, $2, $3, $4)";
+    db.none(db_req, [user.nick, user.first_name, user.last_name, user.password])
         .then(function () {
             console.log("ALL OK!");
             response.send('OK');
@@ -108,7 +104,7 @@ app.post("/register", function (request, response) {
             console.log("ERROR:", error.code);
             console.log("ERROR details:", error.detail);
 
-            if (error.code == 23505){
+            if (error.code === 23505) {
                 response.send("Nickname already exists!");
             }
         });
@@ -118,14 +114,12 @@ app.post("/register", function (request, response) {
 app.post("/login", (request, response) => {
     user = request.body;
 
-    // TODO: replace it, but I haven't enough time for it
-    db_req = "SELECT users.password FROM users WHERE users.nickname = '" +
-             user.nick + "'";
+    db_req = "SELECT users.password FROM users WHERE users.nickname = $1";
 
-    db.one(db_req)
+    db.one(db_req, user.nick)
         .then(function (data) {
             console.log("Nick exists! Checking...");
-            if (data.password == user.password) {
+            if (data.password === user.password) {
                 console.log("OK! Redirecting now");
                 request.session.username = user.nick;
                 response.send('OK');
@@ -137,46 +131,53 @@ app.post("/login", (request, response) => {
         .catch(function (error) {
             console.log("ERROR:", error.code);
 
-            if (error.code == 0){
+            if (error.code === 0) {
                 response.send("Nickname does not exists!");
             }
         });
 });
 
-var params = [];
+let params = [];
 app.post("/addImage", (request, response) => {
     params = request.body;
 
-    var idRaw = 0;
-    let re = "SELECT raw_images.id FROM raw_images WHERE raw_images.id_creator = '" + userId + "'";
-    console.log(re);
-    db.one(re)
+    let idRaw = 0;
+    console.log(userId);
+    db_req = "SELECT raw_images.id FROM raw_images WHERE raw_images.id_creator = $1";
+    db.one(db_req, userId)
         .then(function (data) {
 
             idRaw = data.id;
+            console.log(idRaw);
+
         })
         .catch(function (error) {
             console.log("ERROR into addImg select:", error.code);
         });
 
-    let dbseq = "INSERT INTO processed_images (id_raw_image, link) VALUES (" + idRaw + ", './uploads/" + curImg + "')";
 
-    db.none(dbseq).catch(function (error) {
+    let addrCurImg = "./uploads/" + curImg;
+    let db_req = "INSERT INTO processed_images (id_raw_image, link) VALUES ($1, $2)";
+
+    db.none(db_req, [idRaw, addrCurImg]).catch(function (error) {
         console.log("ERROR in addImg insert:", error.code);
     });
 
 
     let r = [];
-    for (let i = 0; i < params.length; ++i){
-        r.push("INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES" +
-            "(" + params[i].id + ", " + curImg + ", " + i + ", '" + params[i].parameters + "')");
+    for (let i = 0; i < params.length; ++i) {
+        db_req = "INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES ($1, $2, $3, $4)";
+        r.push(db_req, [params[i].id, curImg, i, params[i].parameters]);
     }
     db.none("BEGIN").catch(function (error) {
         console.log("ERROR in start trans:", error.code);
     });
-    for (let i = 0; i < r.length; ++i){
+    for (let i = 0; i < r.length; ++i) {
         db.none(r[i]).catch(function (error) {
             console.log("ERROR into trans:", error.code);
+            db.none("ROLLBACK").catch(function (error) {
+                console.log("ERROR in start trans:", error.code);
+            });
         });
     }
     db.none("COMMIT").catch(function (error) {
