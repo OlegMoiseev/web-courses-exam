@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+
+
+    <title>Image processing - OpenCV</title>
+</head>
+
+<body onload="getName(), getFilters()">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">Image processing</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="col-6">
+
+        <div class="collapse navbar-collapse navbar-nav" id="navbarNav">
+
+            <li class="nav-item active">
+                <a class="nav-link" href="/">Home<span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" id="accName"><span class="sr-only">(current)</span></a>
+            </li>
+
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="collapse navbar-collapse navbar-nav" id="navbarNav2">
+            <li class="nav-item active">
+                <a class="nav-link" href="/login">Logout <span class="sr-only">(current)</span></a>
+            </li>
+        </div>
+    </div>
+</nav>
+
+<div class="container" style="margin: 0 0 0 0" align="center">
+    <div class="row">
+
+        <div class="col-6">
+            <h3>Before</h3>
+            <input type="file" name="file-to-upload" id="file" onchange="sendFile(this)">
+            <input type="submit" value="Upload" onclick="sendJson()">
+            <p id="test_msg"></p>
+            <img id="image_for_proc" src="#" alt="">
+        </div>
+
+        <div class="col-6">
+            <h3>Available procedures:</h3>
+
+            <div id="filters"></div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function getName() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/getName', true);
+        xhr.onload = function () {
+            document.getElementById("accName").innerHTML = xhr.responseText;
+        };
+        xhr.onerror = function () {
+            console.log("Some error occurred - msg from onerror func");
+        };
+        xhr.send();
+    }
+
+    function sendFile(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                $('#image_for_proc')
+                    .attr('src', e.target.result)
+                    .width('50%');
+            };
+            reader.readAsDataURL(input.files[0]);
+
+            var formData = new FormData();
+            formData.append("file-to-upload", document.getElementById("file").files[0]);
+
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/upload");
+            xhr.send(formData);
+            xhr.onload = function () {
+                document.getElementById("test_msg").innerHTML = xhr.responseText;
+            };
+
+        }
+    }
+
+    function getFilters() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/getFilters', true);
+        xhr.onload = function () {
+            let js = JSON.parse(xhr.responseText);
+            for (let i = 0; i < js.length; ++i) {
+                document.getElementById("filters").innerHTML +=
+                    '<div><input type="checkbox" name="' + js[i].id + '">\n' +
+                    '<label for="' + js[i].id + '">' + js[i].id + ' ' + js[i].name + '</label>\n' +
+                    '<input type="text" id="' + js[i].name + 'Params" class="form-control" placeholder="Enter parameters"></div>';
+            }
+
+        };
+        xhr.onerror = function () {
+            console.log("Some error occurred - msg from onerror func");
+        };
+        xhr.send();
+    }
+
+    function sendJson() {
+        let input_obj = document.getElementsByTagName('input');
+        var js = "[";
+        for (let i = 0; i < input_obj.length; i++) {
+            if (input_obj[i].type === 'checkbox' && input_obj[i].checked === true) {
+                js += '{ "id":"' + input_obj[i].name + '", "parameters":"{' + input_obj[i + 1].value + '}"},';
+            }
+        }
+        if (js.length > 1) js = js.substring(0, js.length - 1);
+        js += ']';
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/addImage", true);
+        xhr.setRequestHeader("Content-type", "application/json");
+
+        xhr.send(js);
+
+        console.log(js);
+    }
+</script>
+</body>
+</html>
