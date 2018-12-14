@@ -54,7 +54,7 @@ app.use(
 
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/main.html');
+    res.sendFile(__dirname + 'client/html/main.html');
 });
 
 

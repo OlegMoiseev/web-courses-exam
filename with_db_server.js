@@ -51,21 +51,21 @@ app.use(session({secret: 'keyboard cat', resave: false, saveUninitialized: false
 
 app.get('/', (req, res) => {
     if (req.session.username) {
-        res.sendFile(__dirname + '/main.html');
+        res.sendFile(__dirname + '/client/html/main.html');
     } else {
         console.log("Go to login page");
 
-        res.sendFile(__dirname + '/login.html');
+        res.sendFile(__dirname + '/client/html/login.html');
     }
 });
 
 
 app.get('/register', (req, res) => {
-    res.sendFile(__dirname + '/register.html');
+    res.sendFile(__dirname + '/client/html/register.html');
 });
 
 app.get('/login', (req, res) => {
-    res.sendFile(__dirname + '/login.html');
+    res.sendFile(__dirname + '/client/html/login.html');
 });
 
 const upload = multer({storage: storage});
@@ -187,4 +187,4 @@ app.post("/addImage", (request, response) => {
 });
 
 
-app.listen(8081, () => console.log('Server UP!'));
+app.listen(8080, () => console.log('Server UP!'));
