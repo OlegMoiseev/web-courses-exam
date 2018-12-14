@@ -13,8 +13,8 @@ const storage = multer.diskStorage({
     },
     filename: function (req, file, callback) {
         let d = new Date();
-        // curImg = req.session.username + '-' + d.getMilliseconds() + '-' + file.originalname;
-        curImg = req.session.username + '-' + file.originalname;
+        curImg = req.session.username + '-' + d.getMilliseconds() + '-' + file.originalname;
+        // curImg = req.session.username + '-' + file.originalname;
 
         let db_req = "SELECT users.id FROM users WHERE users.nickname = $1";
         db.one(db_req, req.session.username)
@@ -30,6 +30,7 @@ const storage = multer.diskStorage({
 
         db.none(db_req, [userId, addrCurImg])
             .then(function () {
+
             })
             .catch(function (error) {
                 console.log("ERROR:", error.code);
@@ -73,6 +74,13 @@ const upload = multer({storage: storage});
 app.post('/', upload.single('file-to-upload'), (req, res) => {
     console.log(req.file.originalname);
     res.redirect('/');
+});
+
+app.post('/upload', upload.single('file-to-upload'), (req, res) => {
+    console.log("Upload called");
+    console.log(req.file.originalname);
+    console.log(req.body);
+    res.send("FILE UPLOADED!");
 });
 
 app.get('/getFilters', (req, res) => {
