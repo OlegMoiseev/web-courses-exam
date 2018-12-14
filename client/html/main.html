@@ -53,14 +53,10 @@
 
         <div class="col-6">
             <h3>Before</h3>
-            <form action="" method="post" enctype="multipart/form-data">
-                <input type="file" name="file-to-upload" onchange="readURL(this);">
-                <input type="submit" value="Upload" onclick="sendJson()">
-            </form>
-            <p></p>
+            <input type="file" name="file-to-upload" id="file" onchange="sendFile(this)">
+            <input type="submit" value="Upload" onclick="sendJson()">
+            <p id="test_msg"></p>
             <img id="image_for_proc" src="#" alt="">
-
-
         </div>
 
         <div class="col-6">
@@ -71,7 +67,7 @@
         </div>
     </div>
 </div>
-<!--<script src="../js/img_proc.js"></script>-->
+
 <script>
     function getName() {
         const xhr = new XMLHttpRequest();
@@ -85,7 +81,7 @@
         xhr.send();
     }
 
-    function readURL(input) {
+    function sendFile(input) {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
             reader.onload = function (e) {
@@ -94,6 +90,18 @@
                     .width('50%');
             };
             reader.readAsDataURL(input.files[0]);
+
+            var formData = new FormData();
+            formData.append("file-to-upload", document.getElementById("file").files[0]);
+
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/upload");
+            xhr.send(formData);
+            xhr.onload = function () {
+                document.getElementById("test_msg").innerHTML = xhr.responseText;
+            };
+
         }
     }
 

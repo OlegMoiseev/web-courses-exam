@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+
+    <title>Image processing - OpenCV</title>
+</head>
+<body onload="getFilters()">
+<!--Start Navbar-->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">Image processing</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="col-6">
+
+        <div class="collapse navbar-collapse navbar-nav" id="navbarNav">
+
+            <li class="nav-item active">
+                <a class="nav-link" id="accName"></a>
+            </li>
+
+            <li class="nav-item active">
+                <a class="nav-link" href="/login">Logout</a>
+            </li>
+        </div>
+    </div>
+</nav>
+<!--End Navbar-->
+<!--Start main part-->
+<div class="container" id="imgUplContainer" style="margin-top: 20px; display: block">
+    <div class="input-group mb-3">
+        <div class="input-group-prepend">
+            <span class="input-group-text">Upload</span>
+        </div>
+        <div class="custom-file">
+            <input type="file" class="custom-file-input" id="imgForProc" name="file-to-upload" onchange="sendFile(this)">
+            <label class="custom-file-label" for="imgForProc">Choose file</label>
+        </div>
+    </div>
+</div>
+
+<div class="container" id="imgProcContainer" style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%; display: none">
+    <div class="row" style="width: 100%">
+        <div class="col-6" style="width: 100%">
+            <div class="row" style="width: 100%">
+
+                <div class="card" style="width: 100%">
+                    <h5 class="card-header">Before</h5>
+                    <div class="card-body">
+                        <img id="uploadedImg" src="#" alt="">
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 20px">
+                <div class="card">
+                    <h5 class="card-header">After</h5>
+                    <div class="card-body">
+                        <a href="#" class="btn btn-primary">Go somewhere</a>
+                        <a href="#" class="btn btn-primary">Go somewhere</a>
+                        <a href="#" class="btn btn-primary">Go somewhere</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6">
+            <div class="card">
+                <h5 class="card-header">Filters</h5>
+                <div class="card-body">
+                    <div class="dropdown">
+                        <div id="filtersAppended"></div>
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Add filter
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton" id="filtersMenu"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--End main part-->
+<!--Start scripts-->
+<script>
+    function getFilters() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/getFilters', true);
+        xhr.onload = function () {
+            let js = JSON.parse(xhr.responseText);
+            for (let i = 0; i < js.length; ++i) {
+                // TODO: Try to change creating of strings
+                let name = "'" + js[i].name + "'";
+                document.getElementById("filtersMenu").innerHTML +=
+                    '<a class="dropdown-item" href="#"' +
+                    'onclick="addFilter(' + name + ')">' + js[i].name + '</a>\n';
+            }
+
+        };
+        xhr.onerror = function () {
+            console.log("Error occurred in getting filters");
+        };
+        xhr.send();
+    }
+
+    function addFilter(filterName) {
+        document.getElementById("filtersAppended").innerHTML +=
+
+            '<div class="form-group row">' +
+                '<label for="' + filterName + '" class="col-6 col-form-label">' + filterName + '</label>' +
+                '<div class="col-6">' +
+                    '<input type="text" class="form-control" id="' + filterName + '" placeholder="Parameters">' +
+                '</div>' +
+            '</div>';
+    }
+
+    function sendFile(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                $('#uploadedImg')
+                    .attr('src', e.target.result)
+                    .width('50%');
+            };
+            reader.readAsDataURL(input.files[0]);
+
+            document.getElementById('imgUplContainer').style.display = 'none';
+            document.getElementById('imgProcContainer').style.display = 'block';
+
+            var formData = new FormData();
+            formData.append("file-to-upload", document.getElementById("imgForProc").files[0]);
+
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/upload");
+            xhr.send(formData);
+            // xhr.onload = function () {
+            //     document.getElementById("test_msg").innerHTML = xhr.responseText;
+            // };
+
+        }
+    }
+</script>
+<!--End scripts-->
+</body>
+</html>
