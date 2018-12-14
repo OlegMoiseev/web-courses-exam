@@ -60,6 +60,9 @@ app.get('/', (req, res) => {
     }
 });
 
+app.get('/file_upload', (req, res) => {
+    res.sendFile(__dirname + '/client/html/file_upload.html');
+});
 
 app.get('/register', (req, res) => {
     res.sendFile(__dirname + '/client/html/register.html');

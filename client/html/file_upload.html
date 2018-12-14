@@ -16,7 +16,7 @@
 
     <title>Image processing - OpenCV</title>
 </head>
-<body>
+<body onload="getFilters()">
 <!--Start Navbar-->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a class="navbar-brand" href="#">Image processing</a>
@@ -45,36 +45,81 @@
         <div class="col-6" style="width: 100%">
             <div class="row" style="width: 100%">
 
-            <div class="card" style="width: 100%">
-                <h5 class="card-header">Before</h5>
-                <div class="card-body">
-                    <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
-                    <a href="#" class="btn btn-primary">Go somewhere</a>
+                <div class="card" style="width: 100%">
+                    <h5 class="card-header">Before</h5>
+                    <div class="card-body">
+
+
+                    </div>
                 </div>
-            </div>
             </div>
             <div class="row" style="margin-top: 20px">
                 <div class="card">
                     <h5 class="card-header">After</h5>
                     <div class="card-body">
-                        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+                        <a href="#" class="btn btn-primary">Go somewhere</a>
+                        <a href="#" class="btn btn-primary">Go somewhere</a>
                         <a href="#" class="btn btn-primary">Go somewhere</a>
                     </div>
                 </div>
             </div>
-            </div>
+        </div>
 
         <div class="col-6">
             <div class="card">
                 <h5 class="card-header">Filters</h5>
                 <div class="card-body">
-                    <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
-                    <a href="#" class="btn btn-primary">Go somewhere</a>
+                    <div class="dropdown">
+                        <div id="filtersAppended"></div>
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Add filter
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton" id="filtersMenu"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 <!--End main part-->
+<!--Start scripts-->
+<script>
+    function getFilters() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/getFilters', true);
+        xhr.onload = function () {
+            let js = JSON.parse(xhr.responseText);
+            for (let i = 0; i < js.length; ++i) {
+                // TODO: Try to change creating of strings
+                let name = "'" + js[i].name + "'";
+                document.getElementById("filtersMenu").innerHTML +=
+                    '<a class="dropdown-item" href="#"' +
+                    'onclick="addFilter(' + name + ')">' + js[i].name + '</a>\n';
+            }
+
+        };
+        xhr.onerror = function () {
+            console.log("Some error occurred - msg from onerror func");
+        };
+        xhr.send();
+    }
+
+    function addFilter(filterName) {
+        document.getElementById("filtersAppended").innerHTML +=
+
+            '<div class="form-group row">' +
+                '<label for="' + filterName + '" class="col-6 col-form-label">' + filterName + '</label>' +
+                '<div class="col-6">' +
+                    '<input type="text" class="form-control" id="' + filterName + '" placeholder="Parameters">' +
+                '</div>' +
+            '</div>';
+
+
+            // '<p id="' + filterName + '">' + filterName + '</p>' +
+            // '<input type="text" class="form-control" id="' + filterName + '-params" placeholder="Parameters">\n'
+    }
+</script>
+<!--End scripts-->
 </body>
 </html>
