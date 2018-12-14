@@ -40,7 +40,19 @@
 </nav>
 <!--End Navbar-->
 <!--Start main part-->
-<div class="container" style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%">
+<div class="container" id="imgUplContainer" style="margin-top: 20px; display: block">
+    <div class="input-group mb-3">
+        <div class="input-group-prepend">
+            <span class="input-group-text">Upload</span>
+        </div>
+        <div class="custom-file">
+            <input type="file" class="custom-file-input" id="imgForProc" name="file-to-upload" onchange="sendFile(this)">
+            <label class="custom-file-label" for="imgForProc">Choose file</label>
+        </div>
+    </div>
+</div>
+
+<div class="container" id="imgProcContainer" style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%; display: none">
     <div class="row" style="width: 100%">
         <div class="col-6" style="width: 100%">
             <div class="row" style="width: 100%">
@@ -48,8 +60,7 @@
                 <div class="card" style="width: 100%">
                     <h5 class="card-header">Before</h5>
                     <div class="card-body">
-
-
+                        <img id="uploadedImg" src="#" alt="">
                     </div>
                 </div>
             </div>
@@ -100,7 +111,7 @@
 
         };
         xhr.onerror = function () {
-            console.log("Some error occurred - msg from onerror func");
+            console.log("Error occurred in getting filters");
         };
         xhr.send();
     }
@@ -114,10 +125,33 @@
                     '<input type="text" class="form-control" id="' + filterName + '" placeholder="Parameters">' +
                 '</div>' +
             '</div>';
+    }
+
+    function sendFile(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                $('#uploadedImg')
+                    .attr('src', e.target.result)
+                    .width('50%');
+            };
+            reader.readAsDataURL(input.files[0]);
+
+            document.getElementById('imgUplContainer').style.display = 'none';
+            document.getElementById('imgProcContainer').style.display = 'block';
+
+            var formData = new FormData();
+            formData.append("file-to-upload", document.getElementById("imgForProc").files[0]);
 
 
-            // '<p id="' + filterName + '">' + filterName + '</p>' +
-            // '<input type="text" class="form-control" id="' + filterName + '-params" placeholder="Parameters">\n'
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/upload");
+            xhr.send(formData);
+            // xhr.onload = function () {
+            //     document.getElementById("test_msg").innerHTML = xhr.responseText;
+            // };
+
+        }
     }
 </script>
 <!--End scripts-->
