@@ -3,7 +3,117 @@ const multer = require('multer');
 const pgp = require("pg-promise")(/*options*/);
 const db = pgp("postgres://awsadmin:oleg12537@proc-img-db.cm7oierctxts.eu-west-2.rds.amazonaws.com:5432/awsadmin");
 const bodyParser = require('body-parser');
-const session = require('express-session');
+var session = require('express-session');
+
+var secured = require('./secured');
+var router = express.Router();
+module.exports = router;
+
+// config express-session
+var sess = {
+    secret: 'RaNd0mSeСrЕtWоW',
+    cookie: {},
+    resave: false,
+    saveUninitialized: true
+};
+
+const app = express();
+
+app.use(bodyParser.json()); // support json encoded bodies
+app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
+
+if (app.get('env') === 'production') {
+    sess.cookie.secure = true; // serve secure cookies, requires https
+}
+
+app.use(session(sess));
+
+var dotenv = require('dotenv');
+dotenv.config();
+
+// Load Passport
+var passport = require('passport');
+var Auth0Strategy = require('passport-auth0');
+
+// Configure Passport to use Auth0
+var strategy = new Auth0Strategy(
+    {
+        domain: process.env.AUTH0_DOMAIN,
+        clientID: process.env.AUTH0_CLIENT_ID,
+        clientSecret: process.env.AUTH0_CLIENT_SECRET,
+        callbackURL:
+            process.env.AUTH0_CALLBACK_URL || 'http://localhost:8080/callback'
+    },
+    function (accessToken, refreshToken, extraParams, profile, done) {
+        // accessToken is the token to call Auth0 API (not needed in the most cases)
+        // extraParams.id_token has the JSON Web Token
+        // profile has all the information from the user
+        let count_req = "SELECT count(public.users.email) AS count FROM users WHERE users.email = $1";
+        db.one(count_req, profile._json.email)
+            .then(function (data) {
+                if (data.count == 0) {
+                    let fname = profile._json.given_name;
+                    let lname = profile._json.family_name;
+                    let email = profile._json.email;
+                    db_req = "INSERT INTO users (email, first_name, last_name) VALUES ($1, $2, $3)";
+                    db.none(db_req, [email, fname, lname])
+                        .then(function () {
+                            console.log("New user registered!!");
+                        })
+                        .catch(function (error) {
+                            console.log("ERROR in insert user:", error.code);
+                        });
+                }
+                else {
+                    console.log("User already exists");
+                }
+            })
+            .catch(function (error) {
+                console.log("ERROR in getting user:", error.code);
+            });
+        return done(null, profile);
+    }
+);
+
+passport.use(strategy);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser(function (user, done) {
+    done(null, user);
+});
+
+passport.deserializeUser(function (user, done) {
+    done(null, user);
+});
+
+
+
+app.get('/login', passport.authenticate('auth0', {
+    scope: 'openid email profile'
+}), function (req, res) {
+    res.redirect('/file_upload');
+});
+
+app.get('/callback', function (req, res, next) {
+    passport.authenticate('auth0', function (err, user, info) {
+        if (err) { return next(err); }
+        if (!user) { return res.redirect('/login'); }
+        req.logIn(user, function (err) {
+            if (err) { return next(err); }
+            const returnTo = req.session.returnTo;
+            delete req.session.returnTo;
+            res.redirect(returnTo || '/file_upload');
+        });
+    })(req, res, next);
+});
+
+app.get('/logout',(req,res)=>{
+    req.logout();
+    res.redirect('/login')
+});
+
 
 let curImg = "";
 let userId = 7;
@@ -40,49 +150,16 @@ const storage = multer.diskStorage({
     }
 });
 
-const app = express();
-
-app.use(bodyParser.json()); // support json encoded bodies
-app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
-
-app.use(session({secret: 'keyboard cat', resave: false, saveUninitialized: false}));
-
-// , cookie: { maxAge: 120000 }
-
-
-app.get('/', (req, res) => {
-    if (req.session.username) {
-        res.sendFile(__dirname + '/client/html/main.html');
-    } else {
-        console.log("Go to login page");
-
-        res.sendFile(__dirname + '/client/html/login.html');
-    }
-});
-
-app.get('/file_upload', (req, res) => {
+app.get('/file_upload', secured(), (req, res) => {
     res.sendFile(__dirname + '/client/html/file_upload.html');
 });
 
-app.get('/register', (req, res) => {
-    res.sendFile(__dirname + '/client/html/register.html');
-});
-
-app.get('/login', (req, res) => {
-    res.sendFile(__dirname + '/client/html/login.html');
-});
 
 const upload = multer({storage: storage});
 
-app.post('/', upload.single('file-to-upload'), (req, res) => {
-    console.log(req.file.originalname);
-    res.redirect('/');
-});
 
 app.post('/upload', upload.single('file-to-upload'), (req, res) => {
     console.log("Upload called");
-    console.log(req.file.originalname);
-    console.log(req.body);
     res.send("FILE UPLOADED!");
 });
 
