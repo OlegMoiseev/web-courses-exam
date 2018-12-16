@@ -4,6 +4,8 @@ const pgp = require("pg-promise")(/*options*/);
 const db = pgp("postgres://awsadmin:oleg12537@proc-img-db.cm7oierctxts.eu-west-2.rds.amazonaws.com:5432/awsadmin");
 const bodyParser = require('body-parser');
 var session = require('express-session');
+const aws = require('aws-sdk');
+const multerS3 = require('multer-s3');
 
 var secured = require('./secured');
 var router = express.Router();
@@ -89,6 +91,50 @@ passport.deserializeUser(function (user, done) {
     done(null, user);
 });
 
+aws.config.update({
+    secretAccessKey: 'h381heIu4E1m+oDEcwH1be9e4VhgqdfBaE1S412S',
+    accessKeyId: 'AKIAJQDWDNUPIFR7CCUQ',
+    region: 'eu-west-2'
+});
+
+// const s3 = new aws.S3({
+//     endpoint: new aws.Endpoint('eu-west-2.amazonaws.com')
+// });
+
+var s3 = new aws.S3();
+
+const storage = multerS3({
+    s3: s3,
+    bucket: 'images-proc-app',
+    acl: 'public-read',
+    key: function (req, file, callback) {
+        let d = new Date();
+        let curImg = req.user._json.email + '-' + d.getMilliseconds() + '-' + file.originalname;
+
+        let db_req = "SELECT users.id FROM users WHERE users.email = $1";
+        db.one(db_req, req.user._json.email)
+            .then(function (user) {
+                let addrCurImg = "https://s3.eu-west-2.amazonaws.com/images-proc-app/" + curImg;
+                db_req = "INSERT INTO raw_images (id_creator, link) VALUES ($1, $2)";
+                db.none(db_req, [user.id, addrCurImg])
+                    .then(function () {
+                        // setTimeout( function(){
+                        //     console.log("PAUSE");
+                        // }, 1000 );
+                    })
+                    .catch(function (error) {
+                        console.log("ERROR in adding raw img in db:", error.code);
+                    });
+                callback(null, curImg)
+            })
+            .catch(function (error) {
+                console.log("ERROR in getting user id:", error.code);
+            });
+    }
+});
+
+const upload = multer({storage: storage});
+
 
 app.get('/login', passport.authenticate('auth0', {
     scope: 'openid email profile'
@@ -123,43 +169,9 @@ app.get('/logout', (req, res) => {
     res.redirect('/login')
 });
 
-
-const storage = multer.diskStorage({
-    destination: function (req, file, callback) {
-        callback(null, './uploads')
-    },
-    filename: function (req, file, callback) {
-        let d = new Date();
-        let curImg = req.user._json.email + '-' + d.getMilliseconds() + '-' + file.originalname;
-
-        let db_req = "SELECT users.id FROM users WHERE users.email = $1";
-        db.one(db_req, req.user._json.email)
-            .then(function (user) {
-                let addrCurImg = "./uploads/" + curImg;
-                db_req = "INSERT INTO raw_images (id_creator, link) VALUES ($1, $2)";
-                db.none(db_req, [user.id, addrCurImg])
-                    .then(function () {
-                        // setTimeout( function(){
-                        //     console.log("PAUSE");
-                        // }, 1000 );
-                    })
-                    .catch(function (error) {
-                        console.log("ERROR in adding raw img in db:", error.code);
-                    });
-                callback(null, curImg)
-            })
-            .catch(function (error) {
-                console.log("ERROR in getting user id:", error.code);
-            });
-    }
-});
-
 app.get('/file_upload', secured(), (req, res) => {
     res.sendFile(__dirname + '/client/html/file_upload.html');
 });
-
-
-const upload = multer({storage: storage});
 
 app.post('/upload', upload.single('file-to-upload'), (req, res) => {
     console.log("Upload called");
@@ -179,6 +191,17 @@ app.get('/getFilters', (req, res) => {
 app.get('/getName', (req, res) => {
     res.send(req.user._json.given_name + " " + req.user._json.family_name);
 });
+
+// app.get('/deleteObject', (req, res) => {
+//     var params = {
+//         Bucket: "images-proc-app",
+//         Key: "objectkey.jpg"
+//     };
+//     s3.deleteObject(params, function(err, data) {
+//         if (err) console.log(err, err.stack); // an error occurred
+//         else     console.log(data);           // successful response
+//     });
+// });
 
 let params = [];
 app.post("/addImage", (request, response) => {
