@@ -218,7 +218,7 @@ app.post("/addImage", (req, res) => {
             db.one(db_req, user.id)
                 .then(function (raw_img) {
                     db_req = "SELECT raw_images.link FROM raw_images WHERE raw_images.id = $1";
-                    db.one(db_req, raw_img.id)
+                    db.one(db_req, raw_img.id_raw_img)
                         .then(function (data) {
                             console.log("We will work with image:");
                             console.log(data.link);
