@@ -93,11 +93,14 @@ passport.deserializeUser(function (user, done) {
 app.get('/login', passport.authenticate('auth0', {
     scope: 'openid email profile'
 }), function (req, res) {
+    console.log("In login func");
     res.redirect('/file_upload');
 });
 
 app.get('/callback', function (req, res, next) {
     passport.authenticate('auth0', function (err, user, info) {
+        console.log("In callback func");
+
         if (err) { return next(err); }
         if (!user) { return res.redirect('/login'); }
         req.logIn(user, function (err) {
@@ -166,7 +169,6 @@ app.post('/upload', upload.single('file-to-upload'), (req, res) => {
 app.get('/getFilters', (req, res) => {
     db.multi("SELECT * FROM filters_list")
         .then(function (data) {
-            console.log("getFilters called!");
             res.send(data[0]);
         })
         .catch(function (error) {
@@ -175,54 +177,7 @@ app.get('/getFilters', (req, res) => {
 });
 
 app.get('/getName', (req, res) => {
-    res.send("Username: " + req.session.username);
-});
-
-app.post("/register", function (request, response) {
-    user = request.body;
-
-
-    db_req = "INSERT INTO users (nickname, first_name, last_name, password) VALUES ($1, $2, $3, $4)";
-    db.none(db_req, [user.nick, user.first_name, user.last_name, user.password])
-        .then(function () {
-            console.log("ALL OK!");
-            response.send('OK');
-        })
-        .catch(function (error) {
-            console.log("ERROR:", error.code);
-            console.log("ERROR details:", error.detail);
-
-            if (error.code === 23505) {
-                response.send("Nickname already exists!");
-            }
-        });
-
-});
-
-app.post("/login", (request, response) => {
-    user = request.body;
-
-    db_req = "SELECT users.password FROM users WHERE users.nickname = $1";
-
-    db.one(db_req, user.nick)
-        .then(function (data) {
-            console.log("Nick exists! Checking...");
-            if (data.password === user.password) {
-                console.log("OK! Redirecting now");
-                request.session.username = user.nick;
-                response.send('OK');
-            } else {
-                response.send("Password is wrong!!!");
-            }
-
-        })
-        .catch(function (error) {
-            console.log("ERROR:", error.code);
-
-            if (error.code === 0) {
-                response.send("Nickname does not exists!");
-            }
-        });
+    res.send(req.user._json.given_name + " " + req.user._json.family_name);
 });
 
 let params = [];
