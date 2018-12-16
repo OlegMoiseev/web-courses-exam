@@ -89,7 +89,7 @@
                             Add filter
                         </button>
                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton" id="filtersMenu"></div>
-                        <button type="button" class="btn btn-secondary btn-lg btn-block" id="append" style="display: none;">Append filters</button>
+                        <button type="button" class="btn btn-secondary btn-lg btn-block" id="append" style="display: none;" onclick="applyFilters()">Append filters</button>
 
                     </div>
                 </div>
@@ -135,7 +135,6 @@
 
     function addFilter(filterName) {
         document.getElementById("filtersAppended").innerHTML +=
-
             '<div class="form-group row">' +
             '<label for="' + filterName + '" class="col-6 col-form-label">' + filterName + '</label>' +
             '<div class="col-6">' +
@@ -169,8 +168,17 @@
                     document.getElementById('append').style.display = 'block';
                 }
             };
-
         }
+    }
+    
+    function applyFilters() {
+        let input_obj = document.getElementsByClassName('form-control');
+        var js = "{";
+        for (let i = 0; i < input_obj.length; i++) {
+            js += '{ "name":"' + input_obj[i].id + '", "parameters":[' + input_obj[i].value + ']}';
+        }
+        js += '}';
+        console.log(js);
     }
 </script>
 <!--End scripts-->

@@ -55,10 +55,17 @@ var strategy = new Auth0Strategy(
                     let fname = profile._json.given_name;
                     let lname = profile._json.family_name;
                     let email = profile._json.email;
-                    db_req = "INSERT INTO users (email, first_name, last_name) VALUES ($1, $2, $3)";
-                    db.none(db_req, [email, fname, lname])
-                        .then(function () {
-                            console.log("New user registered!!");
+                    db_req = "INSERT INTO users (email, first_name, last_name) VALUES ($1, $2, $3) RETURNING id";
+                    db.one(db_req, [email, fname, lname])
+                        .then(function (user) {
+                            db_req = "INSERT INTO current_work (id_user) VALUES ($1)";
+                            db.none(db_req, user.id)
+                                .then(function () {
+                                    console.log("New user registered!!");
+                                })
+                                .catch(function (error) {
+                                    console.log("ERROR in insert user into work:", error.code);
+                                });
                         })
                         .catch(function (error) {
                             console.log("ERROR in insert user:", error.code);
@@ -109,12 +116,14 @@ const storage = multerS3({
         db.one(db_req, req.user._json.email)
             .then(function (user) {
                 let addrCurImg = "https://s3.eu-west-2.amazonaws.com/images-proc-app/" + curImg;
-                db_req = "INSERT INTO raw_images (id_creator, link) VALUES ($1, $2)";
-                db.none(db_req, [user.id, addrCurImg])
-                    .then(function () {
-                        // setTimeout( function(){
-                        //     console.log("PAUSE");
-                        // }, 1000 );
+                db_req = "INSERT INTO raw_images (id_creator, link) VALUES ($1, $2) RETURNING id";
+                db.one(db_req, [user.id, addrCurImg])
+                    .then(function (image) {
+                        db_req = "UPDATE current_work SET id_raw_img = $1 WHERE id_user = $2";
+                        db.none(db_req, [image.id, user.id])
+                            .catch(function (error) {
+                                console.log("ERROR in insert into current_work:", error.code);
+                            });
                     })
                     .catch(function (error) {
                         console.log("ERROR in adding raw img in db:", error.code);
@@ -198,51 +207,52 @@ app.get('/getName', (req, res) => {
 // });
 
 let params = [];
-app.post("/addImage", (request, response) => {
-    params = request.body;
+app.post("/addImage", (req, res) => {
+    params = req.body;
 
-    let idRaw = 0;
-    console.log(userId);
-    db_req = "SELECT raw_images.id FROM raw_images WHERE raw_images.id_creator = $1";
-    db.one(db_req, userId)
-        .then(function (data) {
-
-            idRaw = data.id;
-            console.log(idRaw);
-
-        })
-        .catch(function (error) {
-            console.log("ERROR into addImg select:", error.code);
-        });
-
-
-    let addrCurImg = "./uploads/" + curImg;
-    let db_req = "INSERT INTO processed_images (id_raw_image, link) VALUES ($1, $2)";
-
-    db.none(db_req, [idRaw, addrCurImg]).catch(function (error) {
-        console.log("ERROR in addImg insert:", error.code);
-    });
-
-
-    let r = [];
-    for (let i = 0; i < params.length; ++i) {
-        db_req = "INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES ($1, $2, $3, $4)";
-        r.push(db_req, [params[i].id, curImg, i, params[i].parameters]);
-    }
-    db.none("BEGIN").catch(function (error) {
-        console.log("ERROR in start trans:", error.code);
-    });
-    for (let i = 0; i < r.length; ++i) {
-        db.none(r[i]).catch(function (error) {
-            console.log("ERROR into trans:", error.code);
-            db.none("ROLLBACK").catch(function (error) {
-                console.log("ERROR in start trans:", error.code);
-            });
-        });
-    }
-    db.none("COMMIT").catch(function (error) {
-        console.log("ERROR in end trans:", error.code);
-    });
+    console.log(params);
+    // let idRaw = 0;
+    //
+    // db_req = "SELECT raw_images.id FROM raw_images WHERE raw_images.id_creator = $1";
+    // db.one(db_req, userId)
+    //     .then(function (data) {
+    //
+    //         idRaw = data.id;
+    //         console.log(idRaw);
+    //
+    //     })
+    //     .catch(function (error) {
+    //         console.log("ERROR into addImg select:", error.code);
+    //     });
+    //
+    //
+    // let addrCurImg = "./uploads/" + curImg;
+    // let db_req = "INSERT INTO processed_images (id_raw_image, link) VALUES ($1, $2)";
+    //
+    // db.none(db_req, [idRaw, addrCurImg]).catch(function (error) {
+    //     console.log("ERROR in addImg insert:", error.code);
+    // });
+    //
+    //
+    // let r = [];
+    // for (let i = 0; i < params.length; ++i) {
+    //     db_req = "INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES ($1, $2, $3, $4)";
+    //     r.push(db_req, [params[i].id, curImg, i, params[i].parameters]);
+    // }
+    // db.none("BEGIN").catch(function (error) {
+    //     console.log("ERROR in start trans:", error.code);
+    // });
+    // for (let i = 0; i < r.length; ++i) {
+    //     db.none(r[i]).catch(function (error) {
+    //         console.log("ERROR into trans:", error.code);
+    //         db.none("ROLLBACK").catch(function (error) {
+    //             console.log("ERROR in start trans:", error.code);
+    //         });
+    //     });
+    // }
+    // db.none("COMMIT").catch(function (error) {
+    //     console.log("ERROR in end trans:", error.code);
+    // });
 
 });
 
