@@ -92,14 +92,8 @@ passport.deserializeUser(function (user, done) {
 });
 
 aws.config.update({
-    secretAccessKey: 'h381heIu4E1m+oDEcwH1be9e4VhgqdfBaE1S412S',
-    accessKeyId: 'AKIAJQDWDNUPIFR7CCUQ',
     region: 'eu-west-2'
 });
-
-// const s3 = new aws.S3({
-//     endpoint: new aws.Endpoint('eu-west-2.amazonaws.com')
-// });
 
 var s3 = new aws.S3();
 
