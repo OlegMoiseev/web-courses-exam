@@ -66,7 +66,7 @@
                     </div>
                 </div>
             </div>
-            <div class="row" style="margin-top: 20px">
+            <div class="row" style="margin-top: 20px; display: none">
                 <div class="card">
                     <h5 class="card-header">After</h5>
                     <div class="card-body">
@@ -89,6 +89,8 @@
                             Add filter
                         </button>
                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton" id="filtersMenu"></div>
+                        <button type="button" class="btn btn-secondary btn-lg btn-block" id="append" style="display: none;">Append filters</button>
+
                     </div>
                 </div>
             </div>
@@ -162,9 +164,11 @@
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "/upload");
             xhr.send(formData);
-            // xhr.onload = function () {
-            //     document.getElementById("test_msg").innerHTML = xhr.responseText;
-            // };
+            xhr.onload = function () {
+                if (xhr.responseText == "Uploaded"){
+                    document.getElementById('append').style.display = 'block';
+                }
+            };
 
         }
     }
