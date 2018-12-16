@@ -16,7 +16,7 @@
 
     <title>Image processing - OpenCV</title>
 </head>
-<body onload="getFilters()">
+<body onload="getFilters(), getName()">
 <!--Start Navbar-->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a class="navbar-brand" href="#">Image processing</a>
@@ -46,13 +46,15 @@
             <span class="input-group-text">Upload</span>
         </div>
         <div class="custom-file">
-            <input type="file" class="custom-file-input" id="imgForProc" name="file-to-upload" onchange="sendFile(this)">
+            <input type="file" class="custom-file-input" id="imgForProc" name="file-to-upload"
+                   onchange="sendFile(this)">
             <label class="custom-file-label" for="imgForProc">Choose file</label>
         </div>
     </div>
 </div>
 
-<div class="container" id="imgProcContainer" style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%; display: none">
+<div class="container" id="imgProcContainer"
+     style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%; display: none">
     <div class="row" style="width: 100%">
         <div class="col-6" style="width: 100%">
             <div class="row" style="width: 100%">
@@ -94,8 +96,21 @@
     </div>
 </div>
 <!--End main part-->
+
 <!--Start scripts-->
 <script>
+    function getName() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/getName', true);
+        xhr.onload = function () {
+            document.getElementById("accName").innerHTML = xhr.responseText;
+        };
+        xhr.onerror = function () {
+            console.log("Error occurred in getting name");
+        };
+        xhr.send();
+    }
+
     function getFilters() {
         const xhr = new XMLHttpRequest();
         xhr.open('GET', '/getFilters', true);
@@ -120,10 +135,10 @@
         document.getElementById("filtersAppended").innerHTML +=
 
             '<div class="form-group row">' +
-                '<label for="' + filterName + '" class="col-6 col-form-label">' + filterName + '</label>' +
-                '<div class="col-6">' +
-                    '<input type="text" class="form-control" id="' + filterName + '" placeholder="Parameters">' +
-                '</div>' +
+            '<label for="' + filterName + '" class="col-6 col-form-label">' + filterName + '</label>' +
+            '<div class="col-6">' +
+            '<input type="text" class="form-control" id="' + filterName + '" placeholder="Parameters">' +
+            '</div>' +
             '</div>';
     }
 
