@@ -206,24 +206,35 @@ app.get('/getName', (req, res) => {
 //     });
 // });
 
-let params = [];
 app.post("/addImage", (req, res) => {
-    params = req.body;
 
-    console.log(params);
-    // let idRaw = 0;
-    //
-    // db_req = "SELECT raw_images.id FROM raw_images WHERE raw_images.id_creator = $1";
-    // db.one(db_req, userId)
-    //     .then(function (data) {
-    //
-    //         idRaw = data.id;
-    //         console.log(idRaw);
-    //
-    //     })
-    //     .catch(function (error) {
-    //         console.log("ERROR into addImg select:", error.code);
-    //     });
+    let filters = req.body;
+
+
+    let db_req = "SELECT users.id FROM users WHERE users.email = $1";
+    db.one(db_req, req.user._json.email)
+        .then(function (user) {
+            db_req = "SELECT current_work.id_raw_img FROM current_work WHERE current_work.id_user = $1";
+            db.one(db_req, user.id)
+                .then(function (raw_img) {
+                    db_req = "SELECT raw_images.link FROM raw_images WHERE raw_images.id = $1";
+                    db.one(db_req, raw_img.id)
+                        .then(function (data) {
+                            console.log("We will work with image:");
+                            console.log(data.link);
+                            console.log("With filters:");
+                            console.log(filters);
+
+                        })
+                        .catch(function (error) {
+                            console.log("ERROR in getting raw_img link:", error.code);
+                        });
+                })
+                .catch(function (error) {
+                    console.log("ERROR in getting raw_img id:", error.code);
+                });
+        });
+
     //
     //
     // let addrCurImg = "./uploads/" + curImg;

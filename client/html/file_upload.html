@@ -173,12 +173,25 @@
     
     function applyFilters() {
         let input_obj = document.getElementsByClassName('form-control');
-        var js = "{";
+        var js = "[";
         for (let i = 0; i < input_obj.length; i++) {
-            js += '{ "name":"' + input_obj[i].id + '", "parameters":[' + input_obj[i].value + ']}';
+            js += '{ "name":"' + input_obj[i].id + '", "parameters":[' + input_obj[i].value + ']}, ';
         }
-        js += '}';
+        if (js.length > 1) js = js.substring(0, js.length - 2);  // delete "space" and "comma"
+        js += ']';
+
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/addImage", true);
+        xhr.setRequestHeader("Content-type", "application/json");
+
         console.log(js);
+        xhr.send(js);
+        // xhr.onload = function () {
+        //     // if (xhr.responseText == "Uploaded"){
+        //     //     document.getElementById('append').style.display = 'block';
+        //     // }
+        // };
     }
 </script>
 <!--End scripts-->
