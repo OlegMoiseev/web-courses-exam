@@ -104,7 +104,7 @@ aws.config.update({
 
 var s3 = new aws.S3();
 
-const storage = multerS3({
+const params = {
     s3: s3,
     bucket: 'images-proc-app',
     acl: 'public-read',
@@ -115,7 +115,9 @@ const storage = multerS3({
         let db_req = "SELECT users.id FROM users WHERE users.email = $1";
         db.one(db_req, req.user._json.email)
             .then(function (user) {
-                let addrCurImg = "https://s3.eu-west-2.amazonaws.com/images-proc-app/" + curImg;
+                // let addrCurImg = "https://s3.eu-west-2.amazonaws.com/images-proc-app/" + curImg;
+                let addrCurImg = curImg;
+
                 db_req = "INSERT INTO raw_images (id_creator, link) VALUES ($1, $2) RETURNING id";
                 db.one(db_req, [user.id, addrCurImg])
                     .then(function (image) {
@@ -134,10 +136,11 @@ const storage = multerS3({
                 console.log("ERROR in getting user id:", error.code);
             });
     }
-});
+};
+
+const storage = multerS3(params);
 
 const upload = multer({storage: storage});
-
 
 app.get('/login', passport.authenticate('auth0', {
     scope: 'openid email profile'
@@ -220,10 +223,7 @@ app.post("/addImage", (req, res) => {
                     db_req = "SELECT raw_images.link FROM raw_images WHERE raw_images.id = $1";
                     db.one(db_req, raw_img.id_raw_img)
                         .then(function (data) {
-                            console.log("We will work with image:");
-                            console.log(data.link);
-                            console.log("With filters:");
-                            console.log(filters);
+                            processImage(data.link, filters);
 
                         })
                         .catch(function (error) {
@@ -267,5 +267,27 @@ app.post("/addImage", (req, res) => {
 
 });
 
+function processImage(name, filters) {
+    getFile(name);
+    console.log("We will work with image:");
+    console.log(name);
+    console.log("With filters:");
+    console.log(filters);
+}
+
+function getFile(name) {
+    var params = {
+        Bucket: "images-proc-app",
+        Key: name
+    };
+    s3.getObject(params, function (err, data) {
+        if (err) {
+            console.log(err, err.stack);
+        }
+        else {
+            console.log(data);
+        }
+    });
+}
 
 app.listen(8080, () => console.log('Server UP!'));
