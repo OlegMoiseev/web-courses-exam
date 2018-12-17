@@ -7,6 +7,8 @@ var session = require('express-session');
 const aws = require('aws-sdk');
 const multerS3 = require('multer-s3');
 const cv = require('opencv');
+var fs = require('fs');
+
 
 var secured = require('./secured');
 var router = express.Router();
@@ -107,7 +109,7 @@ var s3 = new aws.S3();
 
 const params = {
     s3: s3,
-    bucket: 'images-proc-app',
+    bucket: 'images-proc-app/raw',
     acl: 'public-read',
     key: function (req, file, callback) {
         let d = new Date();
@@ -224,7 +226,7 @@ app.post("/addImage", (req, res) => {
                     db_req = "SELECT raw_images.link FROM raw_images WHERE raw_images.id = $1";
                     db.one(db_req, raw_img.id_raw_img)
                         .then(function (data) {
-                            processImage(data.link, filters);
+                            processImage(data.link, filters, res);
 
                         })
                         .catch(function (error) {
@@ -268,12 +270,12 @@ app.post("/addImage", (req, res) => {
 
 });
 
-function processImage(name, filters) {
+function processImage(name, filters, res) {
     console.log("We will work with image:");
     console.log(name);
 
     var params = {
-        Bucket: "images-proc-app",
+        Bucket: "images-proc-app/raw",
         Key: name
     };
     s3.getObject(params, function (err, data) {
@@ -307,7 +309,26 @@ function processImage(name, filters) {
                         img.convertGrayscale();
                     }
                 }
-                img.save('./myNewImage.jpg');
+
+
+                img.save('./results/' + name);
+                var contents = fs.readFileSync('./results/' + name);
+
+                var params = {
+                    Bucket: "images-proc-app/processed",
+                    Key: name,
+                    acl: 'public-read',
+                    Body: contents
+                };
+                s3.upload(params, function (err, data) {
+                    if (err) {
+                        console.log("Error in finish upload to S3: " + err);
+                    }
+                    fs.unlinkSync('./results/' + name);
+                    console.log('Success upload processed image!');
+
+                });
+
             });
         }
     });
@@ -319,6 +340,7 @@ function getOdd(num) {
 function getFile(name) {
     var params = {
         Bucket: "images-proc-app",
+        acl: 'public-read',
         Key: name
     };
     s3.getObject(params, function (err, data) {
