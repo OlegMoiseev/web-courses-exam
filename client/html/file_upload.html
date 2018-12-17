@@ -56,11 +56,7 @@
 <div class="container" id="imgProcContainer"
      style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%; display: none">
     <div class="row" style="width: 100%">
-        
-        
-        
-        
-        
+
         <div class="col-6" style="width: 100%">
             <div class="row" style="width: 100%">
 
@@ -73,7 +69,6 @@
             </div>
 
             <div class="row" style="width: 100%; display: none;" id="procImgCol">
-
 
             <div class="card">
                 <h5 class="card-header">After</h5>
@@ -90,16 +85,7 @@
             </div>
             </div>
         </div>
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
         <div class="col-6">
             <div class="card">
                 <h5 class="card-header">Filters</h5>
@@ -117,8 +103,6 @@
                         <button type="button" class="btn btn-secondary btn-lg btn-block" id="append"
                                 style="display: none;" onclick="applyFilters()">Append filters
                         </button>
-
-
                     </div>
                 </div>
             </div>
@@ -153,7 +137,6 @@
                     '<a class="dropdown-item" href="#"' +
                     'onclick="addFilter(' + name + ')">' + js[i].name + '</a>\n';
             }
-
         };
         xhr.onerror = function () {
             console.log("Error occurred in getting filters");
@@ -192,7 +175,6 @@
             var formData = new FormData();
             formData.append("file-to-upload", document.getElementById("imgForProc").files[0]);
 
-
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "/upload");
             xhr.send(formData);
@@ -228,7 +210,6 @@
                 .width('100%')
                 .height('auto');
             document.getElementById('procImgCol').style.display = 'block';
-
         };
     }
 </script>

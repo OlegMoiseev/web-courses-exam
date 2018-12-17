@@ -226,7 +226,7 @@ app.post("/addImage", (req, res) => {
                     db_req = "SELECT raw_images.link FROM raw_images WHERE raw_images.id = $1";
                     db.one(db_req, raw_img.id_raw_img)
                         .then(function (data) {
-                            processImage(data.link, filters, res);
+                            processImage(data.link, filters, req, res);
 
                         })
                         .catch(function (error) {
@@ -237,40 +237,9 @@ app.post("/addImage", (req, res) => {
                     console.log("ERROR in getting raw_img id:", error.code);
                 });
         });
-
-    //
-    //
-    // let addrCurImg = "./uploads/" + curImg;
-    // let db_req = "INSERT INTO processed_images (id_raw_image, link) VALUES ($1, $2)";
-    //
-    // db.none(db_req, [idRaw, addrCurImg]).catch(function (error) {
-    //     console.log("ERROR in addImg insert:", error.code);
-    // });
-    //
-    //
-    // let r = [];
-    // for (let i = 0; i < params.length; ++i) {
-    //     db_req = "INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES ($1, $2, $3, $4)";
-    //     r.push(db_req, [params[i].id, curImg, i, params[i].parameters]);
-    // }
-    // db.none("BEGIN").catch(function (error) {
-    //     console.log("ERROR in start trans:", error.code);
-    // });
-    // for (let i = 0; i < r.length; ++i) {
-    //     db.none(r[i]).catch(function (error) {
-    //         console.log("ERROR into trans:", error.code);
-    //         db.none("ROLLBACK").catch(function (error) {
-    //             console.log("ERROR in start trans:", error.code);
-    //         });
-    //     });
-    // }
-    // db.none("COMMIT").catch(function (error) {
-    //     console.log("ERROR in end trans:", error.code);
-    // });
-
 });
 
-function processImage(name, filters, res) {
+function processImage(name, filters, req, res) {
     console.log("We will work with image:");
     console.log(name);
 
@@ -295,50 +264,125 @@ function processImage(name, filters, res) {
                     throw new Error('Image has no size');
                 }
 
-                for (let i = 0; i < filters.length; ++i){
-                    console.log("Filter:" + filters[i].name);
-                    console.log("With parameters: " + filters[i].parameters[0] + ' ' + filters[i].parameters[1]);
-                    if (filters[i].name == "Gaussian blur") { // only odd numbers!!!
-                        if (filters[i].parameters.length != 2){
-                            filters[i].parameters[0] = 11;
-                            filters[i].parameters[1] = 11;
-                        }
-                        img.gaussianBlur([getOdd(filters[i].parameters[0]), getOdd(filters[i].parameters[1])]);
-                    }
-                    if (filters[i].name == "To Grayscale") {
-                        img.convertGrayscale();
-                    }
-                }
+                let db_req = "SELECT users.id FROM users WHERE users.email = $1";
+                db.one(db_req, req.user._json.email)
+                    .then(function (user) {
+                        db_req = "SELECT current_work.id_raw_img FROM current_work WHERE current_work.id_user = $1";
+                        db.one(db_req, user.id)
+                            .then(function (raw_img) {
+                                db_req = "INSERT INTO processed_images (id_raw_image, link) VALUES ($1, $2) RETURNING id";
+                                db.one(db_req, [raw_img.id_raw_img, name])
+                                    .then(function (proc_img) {
+                                        for (let i = 0; i < filters.length; ++i) {
+                                            if (filters[i].name == "Gaussian blur") { // only odd numbers!!!
+                                                if (filters[i].parameters.length != 2) {
+                                                    filters[i].parameters[0] = 11;
+                                                    filters[i].parameters[1] = 11;
+                                                }
+                                                img.gaussianBlur([getOdd(filters[i].parameters[0]), getOdd(filters[i].parameters[1])]);
+                                            }
+
+                                            if (filters[i].name == "To Grayscale") {
+                                                img.convertGrayscale();
+                                            }
+
+                                            db_req = createReq(filters[i].parameters);
+                                            db.none(db_req, [getFilterId(filters[i].name), proc_img.id, i])
+                                                .catch(function (error) {
+                                                    console.log("ERROR in insert filter " + i + ": ", error.code);
+                                                });
+                                        }
 
 
-                img.save('./results/' + name);
+                                        img.save('./results/' + name);
 
-                var contents = fs.readFileSync('./results/' + name);
+                                        var contents = fs.readFileSync('./results/' + name);
 
-                var params = {
-                    Bucket: "images-proc-app/processed",
-                    Key: name,
-                    acl: 'public-read',
-                    Body: contents
-                };
-                s3.upload(params, function (err, data) {
-                    if (err) {
-                        console.log("Error in finish upload to S3: " + err);
-                    }
-                    fs.unlinkSync('./results/' + name);
-                    console.log('Success upload processed image!');
-                    name.replace('@', '%40');
-                    res.send(name);
-                });
+                                        var params = {
+                                            Bucket: "images-proc-app/processed",
+                                            Key: name,
+                                            acl: 'public-read',
+                                            Body: contents
+                                        };
+                                        s3.upload(params, function (err, data) {
+                                            if (err) {
+                                                console.log("Error in finish upload to S3: " + err);
+                                            }
+                                            fs.unlinkSync('./results/' + name);
+                                            console.log('Success upload processed image!');
+                                            name.replace('@', '%40');
+                                            res.send(name);
+                                        });
 
+
+                                    })
+                                    .catch(function (error) {
+                                        console.log("ERROR in insert proc_img link:", error.code);
+                                    });
+                            })
+                            .catch(function (error) {
+                                console.log("ERROR in getting raw_img id (2):", error.code);
+                            });
+                    })
+                    .catch(function (error) {
+                        console.log("ERROR in getting user id (2):", error.code);
+                    });
             });
         }
     });
 }
 
+function deleteImage(req) {
+
+
+}
+function createReq(arr) {
+    return "INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES" +
+        "($1, $2, $3, '" + getParameters(arr) + "')";
+}
+
+function getFilterId(name) {
+    switch (name) {
+        case "Gaussian blur":
+            return 1;
+        case "Median blur":
+            return 2;
+        case "Bilateral blur":
+            return 3;
+        case "To Grayscale":
+            return 4;
+        case "Resize":
+            return 5;
+        case "Crop":
+            return 6;
+        case "Rotate":
+            return 7;
+        case "Flip":
+            return 8;
+        case "Find contours":
+            return 9;
+        case "Erode":
+            return 10;
+        case "Dilate":
+            return 11;
+        case "Sobel operator":
+            return 12;
+    }
+}
+
+function getParameters(par) {
+    let ret = "{";
+    for (let i = 0; i < par.length; ++i){
+        ret += par[i] + ", "
+    }
+    if (ret.length > 1) ret = ret.substring(0, ret.length - 2);  // delete "space" and "comma"
+    ret += '}';
+    return ret;
+}
 function getOdd(num) {
     return Math.floor(Number(num) / 2) * 2 + 1;
 }
+
 function getFile(name) {
     var params = {
         Bucket: "images-proc-app",
