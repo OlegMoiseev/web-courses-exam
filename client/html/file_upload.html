@@ -56,25 +56,33 @@
 <div class="container" id="imgProcContainer"
      style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%; display: none">
     <div class="row" style="width: 100%">
+
         <div class="col-6" style="width: 100%">
             <div class="row" style="width: 100%">
 
-                <div class="card" style="width: 100%">
-                    <h5 class="card-header">Before</h5>
-                    <div class="card-body">
-                        <img id="uploadedImg" src="#" alt="">
+            <div class="card" style="width: 100%">
+                <h5 class="card-header">Before</h5>
+                <div class="card-body">
+                    <img id="uploadedImg" src="#" alt="">
+                </div>
+            </div>
+            </div>
+
+            <div class="row" style="width: 100%; display: none;" id="procImgCol">
+
+            <div class="card">
+                <h5 class="card-header">After</h5>
+                <div class="card-body">
+                    <img id="processedImg" src="#" alt="">
+
+                    <p></p>
+                    <div>
+                        <a href="#" class="btn btn-success" id="downloadImgButton">Download file!</a>
+                        <a href="#" class="btn btn-danger" onclick="deleteImg()">Delete</a>
+                        <a href="#" class="btn btn-primary" onclick="saveToProfile()">Save to profile</a>
                     </div>
                 </div>
             </div>
-            <div class="row" style="margin-top: 20px; display: none">
-                <div class="card">
-                    <h5 class="card-header">After</h5>
-                    <div class="card-body">
-                        <a href="#" class="btn btn-primary">Go somewhere</a>
-                        <a href="#" class="btn btn-primary">Go somewhere</a>
-                        <a href="#" class="btn btn-primary">Go somewhere</a>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -89,8 +97,12 @@
                             Add filter
                         </button>
                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton" id="filtersMenu"></div>
-                        <button type="button" class="btn btn-secondary btn-lg btn-block" id="append" style="display: none;">Append filters</button>
+                        <button type="button" class="btn btn-danger" onclick="resetFilters()">Reset filters</button>
 
+                        <p></p>
+                        <button type="button" class="btn btn-secondary btn-lg btn-block" id="append"
+                                style="display: none;" onclick="applyFilters()">Append filters
+                        </button>
                     </div>
                 </div>
             </div>
@@ -125,7 +137,6 @@
                     '<a class="dropdown-item" href="#"' +
                     'onclick="addFilter(' + name + ')">' + js[i].name + '</a>\n';
             }
-
         };
         xhr.onerror = function () {
             console.log("Error occurred in getting filters");
@@ -133,9 +144,26 @@
         xhr.send();
     }
 
+    function saveToProfile() {
+        document.getElementById('procImgCol').style.display = 'none';
+    }
+
+    function deleteImg() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/deleteImage', true);
+        xhr.onload = function () {
+            if (xhr.responseText == "Deleted") {
+                document.getElementById('procImgCol').style.display = 'none';
+            }
+        };
+        xhr.onerror = function () {
+            console.log("Error occurred in deleting img");
+        };
+        xhr.send();
+    }
+
     function addFilter(filterName) {
         document.getElementById("filtersAppended").innerHTML +=
-
             '<div class="form-group row">' +
             '<label for="' + filterName + '" class="col-6 col-form-label">' + filterName + '</label>' +
             '<div class="col-6">' +
@@ -144,13 +172,18 @@
             '</div>';
     }
 
+    function resetFilters() {
+        document.getElementById("filtersAppended").innerHTML = "";
+    }
+
     function sendFile(input) {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
             reader.onload = function (e) {
                 $('#uploadedImg')
                     .attr('src', e.target.result)
-                    .width('50%');
+                    .width('100%')
+                    .height('auto');
             };
             reader.readAsDataURL(input.files[0]);
 
@@ -160,17 +193,42 @@
             var formData = new FormData();
             formData.append("file-to-upload", document.getElementById("imgForProc").files[0]);
 
-
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "/upload");
             xhr.send(formData);
             xhr.onload = function () {
-                if (xhr.responseText == "Uploaded"){
+                if (xhr.responseText == "Uploaded") {
                     document.getElementById('append').style.display = 'block';
                 }
             };
-
         }
+    }
+
+    function applyFilters() {
+        document.getElementById("processedImg").src = "";
+        let input_obj = document.getElementsByClassName('form-control');
+        var js = "[";
+        for (let i = 0; i < input_obj.length; i++) {
+            js += '{ "name":"' + input_obj[i].id + '", "parameters":[' + input_obj[i].value + ']}, ';
+        }
+        if (js.length > 1) js = js.substring(0, js.length - 2);  // delete "space" and "comma"
+        js += ']';
+
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/addImage", true);
+        xhr.setRequestHeader("Content-type", "application/json");
+
+        console.log(js);
+        xhr.send(js);
+        xhr.onload = function () {
+            document.getElementById("processedImg").src = "https://s3.eu-west-2.amazonaws.com/images-proc-app/processed/" + xhr.responseText + "?" + new Date().getTime();
+            document.getElementById("downloadImgButton").href = "https://s3.eu-west-2.amazonaws.com/images-proc-app/processed/" + xhr.responseText;
+            $('#processedImg')
+                .width('100%')
+                .height('auto');
+            document.getElementById('procImgCol').style.display = 'block';
+        };
     }
 </script>
 <!--End scripts-->

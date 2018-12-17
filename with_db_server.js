@@ -6,6 +6,9 @@ const bodyParser = require('body-parser');
 var session = require('express-session');
 const aws = require('aws-sdk');
 const multerS3 = require('multer-s3');
+const cv = require('opencv');
+var fs = require('fs');
+
 
 var secured = require('./secured');
 var router = express.Router();
@@ -55,10 +58,17 @@ var strategy = new Auth0Strategy(
                     let fname = profile._json.given_name;
                     let lname = profile._json.family_name;
                     let email = profile._json.email;
-                    db_req = "INSERT INTO users (email, first_name, last_name) VALUES ($1, $2, $3)";
-                    db.none(db_req, [email, fname, lname])
-                        .then(function () {
-                            console.log("New user registered!!");
+                    db_req = "INSERT INTO users (email, first_name, last_name) VALUES ($1, $2, $3) RETURNING id";
+                    db.one(db_req, [email, fname, lname])
+                        .then(function (user) {
+                            db_req = "INSERT INTO current_work (id_user) VALUES ($1)";
+                            db.none(db_req, user.id)
+                                .then(function () {
+                                    console.log("New user registered!!");
+                                })
+                                .catch(function (error) {
+                                    console.log("ERROR in insert user into work:", error.code);
+                                });
                         })
                         .catch(function (error) {
                             console.log("ERROR in insert user:", error.code);
@@ -97,9 +107,9 @@ aws.config.update({
 
 var s3 = new aws.S3();
 
-const storage = multerS3({
+const params = {
     s3: s3,
-    bucket: 'images-proc-app',
+    bucket: 'images-proc-app/raw',
     acl: 'public-read',
     key: function (req, file, callback) {
         let d = new Date();
@@ -108,13 +118,17 @@ const storage = multerS3({
         let db_req = "SELECT users.id FROM users WHERE users.email = $1";
         db.one(db_req, req.user._json.email)
             .then(function (user) {
-                let addrCurImg = "https://s3.eu-west-2.amazonaws.com/images-proc-app/" + curImg;
-                db_req = "INSERT INTO raw_images (id_creator, link) VALUES ($1, $2)";
-                db.none(db_req, [user.id, addrCurImg])
-                    .then(function () {
-                        // setTimeout( function(){
-                        //     console.log("PAUSE");
-                        // }, 1000 );
+                // let addrCurImg = "https://s3.eu-west-2.amazonaws.com/images-proc-app/" + curImg;
+                let addrCurImg = curImg;
+
+                db_req = "INSERT INTO raw_images (id_creator, link) VALUES ($1, $2) RETURNING id";
+                db.one(db_req, [user.id, addrCurImg])
+                    .then(function (image) {
+                        db_req = "UPDATE current_work SET id_raw_img = $1 WHERE id_user = $2";
+                        db.none(db_req, [image.id, user.id])
+                            .catch(function (error) {
+                                console.log("ERROR in insert into current_work:", error.code);
+                            });
                     })
                     .catch(function (error) {
                         console.log("ERROR in adding raw img in db:", error.code);
@@ -125,10 +139,11 @@ const storage = multerS3({
                 console.log("ERROR in getting user id:", error.code);
             });
     }
-});
+};
+
+const storage = multerS3(params);
 
 const upload = multer({storage: storage});
-
 
 app.get('/login', passport.authenticate('auth0', {
     scope: 'openid email profile'
@@ -186,65 +201,244 @@ app.get('/getName', (req, res) => {
     res.send(req.user._json.given_name + " " + req.user._json.family_name);
 });
 
-// app.get('/deleteObject', (req, res) => {
-//     var params = {
-//         Bucket: "images-proc-app",
-//         Key: "objectkey.jpg"
-//     };
-//     s3.deleteObject(params, function(err, data) {
-//         if (err) console.log(err, err.stack); // an error occurred
-//         else     console.log(data);           // successful response
-//     });
-// });
-
-let params = [];
-app.post("/addImage", (request, response) => {
-    params = request.body;
-
-    let idRaw = 0;
-    console.log(userId);
-    db_req = "SELECT raw_images.id FROM raw_images WHERE raw_images.id_creator = $1";
-    db.one(db_req, userId)
-        .then(function (data) {
-
-            idRaw = data.id;
-            console.log(idRaw);
-
-        })
-        .catch(function (error) {
-            console.log("ERROR into addImg select:", error.code);
-        });
-
-
-    let addrCurImg = "./uploads/" + curImg;
-    let db_req = "INSERT INTO processed_images (id_raw_image, link) VALUES ($1, $2)";
-
-    db.none(db_req, [idRaw, addrCurImg]).catch(function (error) {
-        console.log("ERROR in addImg insert:", error.code);
-    });
-
-
-    let r = [];
-    for (let i = 0; i < params.length; ++i) {
-        db_req = "INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES ($1, $2, $3, $4)";
-        r.push(db_req, [params[i].id, curImg, i, params[i].parameters]);
-    }
-    db.none("BEGIN").catch(function (error) {
-        console.log("ERROR in start trans:", error.code);
-    });
-    for (let i = 0; i < r.length; ++i) {
-        db.none(r[i]).catch(function (error) {
-            console.log("ERROR into trans:", error.code);
-            db.none("ROLLBACK").catch(function (error) {
-                console.log("ERROR in start trans:", error.code);
-            });
-        });
-    }
-    db.none("COMMIT").catch(function (error) {
-        console.log("ERROR in end trans:", error.code);
-    });
-
+app.get('/deleteImage', (req, res) => {
+    deleteImage(req, res);
 });
 
+app.post("/addImage", (req, res) => {
+
+    let filters = req.body;
+
+
+    let db_req = "SELECT users.id FROM users WHERE users.email = $1";
+    db.one(db_req, req.user._json.email)
+        .then(function (user) {
+            db_req = "SELECT current_work.id_raw_img FROM current_work WHERE current_work.id_user = $1";
+            db.one(db_req, user.id)
+                .then(function (raw_img) {
+                    db_req = "SELECT raw_images.link FROM raw_images WHERE raw_images.id = $1";
+                    db.one(db_req, raw_img.id_raw_img)
+                        .then(function (data) {
+                            processImage(data.link, filters, req, res);
+
+                        })
+                        .catch(function (error) {
+                            console.log("ERROR in getting raw_img link:", error.code);
+                        });
+                })
+                .catch(function (error) {
+                    console.log("ERROR in getting raw_img id:", error.code);
+                });
+        });
+});
+
+function processImage(name, filters, req, res) {
+    console.log("We will work with image:");
+    console.log(name);
+
+    var params = {
+        Bucket: "images-proc-app/raw",
+        Key: name
+    };
+    s3.getObject(params, function (err, data) {
+        if (err) {
+            console.log(err, err.stack);
+        }
+        else {
+            cv.readImage(data.Body, function (err, img) {
+                if (err) {
+                    throw err;
+                }
+
+                const width = img.width();
+                const height = img.height();
+
+                if (width < 1 || height < 1) {
+                    throw new Error('Image has no size');
+                }
+
+                let db_req = "SELECT users.id FROM users WHERE users.email = $1";
+                db.one(db_req, req.user._json.email)
+                    .then(function (user) {
+                        db_req = "SELECT current_work.id_raw_img FROM current_work WHERE current_work.id_user = $1";
+                        db.one(db_req, user.id)
+                            .then(function (raw_img) {
+                                db_req = "INSERT INTO processed_images (id_raw_image, link) VALUES ($1, $2) RETURNING id";
+                                db.one(db_req, [raw_img.id_raw_img, name])
+                                    .then(function (proc_img) {
+                                        for (let i = 0; i < filters.length; ++i) {
+                                            if (filters[i].name == "Gaussian blur") { // only odd numbers!!!
+                                                if (filters[i].parameters.length != 2) {
+                                                    filters[i].parameters[0] = 11;
+                                                    filters[i].parameters[1] = 11;
+                                                }
+                                                img.gaussianBlur([getOdd(filters[i].parameters[0]), getOdd(filters[i].parameters[1])]);
+                                            }
+
+                                            if (filters[i].name == "To Grayscale") {
+                                                img.convertGrayscale();
+                                            }
+
+                                            db_req = createReq(filters[i].parameters);
+                                            db.none(db_req, [getFilterId(filters[i].name), proc_img.id, i])
+                                                .catch(function (error) {
+                                                    console.log("ERROR in insert filter " + i + ": ", error.code);
+                                                });
+                                        }
+
+
+                                        img.save('./results/' + name);
+
+                                        var contents = fs.readFileSync('./results/' + name);
+
+                                        var params = {
+                                            Bucket: "images-proc-app/processed",
+                                            Key: name,
+                                            acl: 'public-read',
+                                            Body: contents
+                                        };
+                                        s3.upload(params, function (err, data) {
+                                            if (err) {
+                                                console.log("Error in finish upload to S3: " + err);
+                                            }
+                                            fs.unlinkSync('./results/' + name);
+                                            console.log('Success upload processed image!');
+                                            name.replace('@', '%40');
+                                            res.send(name);
+                                        });
+
+
+                                    })
+                                    .catch(function (error) {
+                                        console.log("ERROR in insert proc_img link:", error.code);
+                                    });
+                            })
+                            .catch(function (error) {
+                                console.log("ERROR in getting raw_img id (2):", error.code);
+                            });
+                    })
+                    .catch(function (error) {
+                        console.log("ERROR in getting user id (2):", error.code);
+                    });
+            });
+        }
+    });
+}
+
+function deleteImage(req, res) {
+    let db_req = "SELECT users.id FROM users WHERE users.email = $1";
+    console.log("email ", req.user._json.email);
+
+    db.one(db_req, req.user._json.email)
+        .then(function (user) {
+            db_req = "SELECT current_work.id_raw_img FROM current_work WHERE current_work.id_user = $1";
+            db.one(db_req, user.id)
+                .then(function (raw_img) {
+                    db_req = "SELECT processed_images.id FROM processed_images WHERE processed_images.id_raw_image = $1";
+                    db.one(db_req, raw_img.id_raw_img)
+                        .then(function (proc_img) {
+                            db_req = "DELETE FROM filters_applied WHERE filters_applied.id_processed_img = $1;";
+                            db.none(db_req, proc_img.id)
+                                .then(function () {
+                                    db_req = "DELETE FROM processed_images WHERE processed_images.id = $1;";
+                                    db.none(db_req, proc_img.id)
+                                        .then(function () {
+                                            res.send("Deleted");
+                                        })
+                                        .catch(function (error) {
+                                            console.log("ERROR in deleting proc img:", error.code);
+                                        });
+                                })
+                                .catch(function (error) {
+                                    console.log("ERROR in deleting applied filters:", error.code);
+                                });
+                        })
+                        .catch(function (error) {
+                            console.log("ERROR in getting proc_img id (3):", error.code);
+                        });
+                })
+                .catch(function (error) {
+                        console.log("ERROR in getting raw_img id (3):", error.code);
+                });
+        })
+        .catch(function (error) {
+                    console.log("ERROR in getting user id (3):", error.code);
+                });
+
+}
+function createReq(arr) {
+    return "INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES" +
+        "($1, $2, $3, '" + getParameters(arr) + "')";
+}
+
+function getFilterId(name) {
+    switch (name) {
+        case "Gaussian blur":
+            return 1;
+        case "Median blur":
+            return 2;
+        case "Bilateral blur":
+            return 3;
+        case "To Grayscale":
+            return 4;
+        case "Resize":
+            return 5;
+        case "Crop":
+            return 6;
+        case "Rotate":
+            return 7;
+        case "Flip":
+            return 8;
+        case "Find contours":
+            return 9;
+        case "Erode":
+            return 10;
+        case "Dilate":
+            return 11;
+        case "Sobel operator":
+            return 12;
+    }
+}
+
+function getParameters(par) {
+    let ret = "{";
+    for (let i = 0; i < par.length; ++i){
+        ret += par[i] + ", "
+    }
+    if (ret.length > 1) ret = ret.substring(0, ret.length - 2);  // delete "space" and "comma"
+    ret += '}';
+    return ret;
+}
+function getOdd(num) {
+    return Math.floor(Number(num) / 2) * 2 + 1;
+}
+
+function getFile(name) {
+    var params = {
+        Bucket: "images-proc-app",
+        acl: 'public-read',
+        Key: name
+    };
+    s3.getObject(params, function (err, data) {
+        if (err) {
+            console.log(err, err.stack);
+        }
+        else {
+            cv.readImage(data.Body, function (err, img) {
+                if (err) {
+                    throw err;
+                }
+
+                const width = img.width();
+                const height = img.height();
+
+                if (width < 1 || height < 1) {
+                    throw new Error('Image has no size');
+                }
+                console.log('Return will be call');
+            });
+        }
+    });
+}
 
 app.listen(8080, () => console.log('Server UP!'));
