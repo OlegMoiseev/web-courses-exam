@@ -66,10 +66,12 @@
                     </div>
                 </div>
             </div>
-            <div class="row" style="margin-top: 20px; display: none">
+            <div class="row" id="procImgRow" style="margin-top: 20px; display: none">
                 <div class="card">
                     <h5 class="card-header">After</h5>
                     <div class="card-body">
+                        <img id="processedImg" src="#" alt="">
+
                         <a href="#" class="btn btn-primary">Go somewhere</a>
                         <a href="#" class="btn btn-primary">Go somewhere</a>
                         <a href="#" class="btn btn-primary">Go somewhere</a>
@@ -187,11 +189,10 @@
 
         console.log(js);
         xhr.send(js);
-        // xhr.onload = function () {
-        //     // if (xhr.responseText == "Uploaded"){
-        //     //     document.getElementById('append').style.display = 'block';
-        //     // }
-        // };
+        xhr.onload = function () {
+            document.getElementById("processedImg").src = "https://s3.eu-west-2.amazonaws.com/images-proc-app/processed/" + xhr.responseText;
+            document.getElementById('procImgRow').style.display = 'block';
+        };
     }
 </script>
 <!--End scripts-->

@@ -312,6 +312,7 @@ function processImage(name, filters, res) {
 
 
                 img.save('./results/' + name);
+
                 var contents = fs.readFileSync('./results/' + name);
 
                 var params = {
@@ -326,7 +327,8 @@ function processImage(name, filters, res) {
                     }
                     fs.unlinkSync('./results/' + name);
                     console.log('Success upload processed image!');
-
+                    name.replace('@', '%40');
+                    res.send(name);
                 });
 
             });
