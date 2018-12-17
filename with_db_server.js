@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 var session = require('express-session');
 const aws = require('aws-sdk');
 const multerS3 = require('multer-s3');
+const cv = require('opencv');
 
 var secured = require('./secured');
 var router = express.Router();
@@ -285,7 +286,23 @@ function getFile(name) {
             console.log(err, err.stack);
         }
         else {
-            console.log(data);
+            // console.log(data.Body);
+            cv.readImage(data.Body, function (err, img) {
+                if (err) {
+                    throw err;
+                }
+
+                const width = img.width();
+                const height = img.height();
+
+                if (width < 1 || height < 1) {
+                    throw new Error('Image has no size');
+                }
+
+
+                img.save('./myNewImage.jpg');
+            });
+
         }
     });
 }
