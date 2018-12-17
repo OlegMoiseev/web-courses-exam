@@ -56,7 +56,13 @@
 <div class="container" id="imgProcContainer"
      style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%; display: none">
     <div class="row" style="width: 100%">
+        
+        
+        
+        
+        
         <div class="col-6" style="width: 100%">
+            <div class="row" style="width: 100%">
 
             <div class="card" style="width: 100%">
                 <h5 class="card-header">Before</h5>
@@ -64,8 +70,10 @@
                     <img id="uploadedImg" src="#" alt="">
                 </div>
             </div>
-        </div>
-        <div class="col-6" id="procImgCol" style="width: 100%; display: none">
+            </div>
+
+            <div class="row" style="width: 100%; display: none;" id="procImgCol">
+
 
             <div class="card">
                 <h5 class="card-header">After</h5>
@@ -80,8 +88,18 @@
                     </div>
                 </div>
             </div>
+            </div>
         </div>
-
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         <div class="col-6">
             <div class="card">
                 <h5 class="card-header">Filters</h5>
@@ -180,6 +198,7 @@
     }
 
     function applyFilters() {
+        document.getElementById("processedImg").src = "";
         let input_obj = document.getElementsByClassName('form-control');
         var js = "[";
         for (let i = 0; i < input_obj.length; i++) {
@@ -196,7 +215,7 @@
         console.log(js);
         xhr.send(js);
         xhr.onload = function () {
-            document.getElementById("processedImg").src = "https://s3.eu-west-2.amazonaws.com/images-proc-app/processed/" + xhr.responseText;
+            document.getElementById("processedImg").src = "https://s3.eu-west-2.amazonaws.com/images-proc-app/processed/" + xhr.responseText + "?" + new Date().getTime();
             document.getElementById("downloadImgButton").href = "https://s3.eu-west-2.amazonaws.com/images-proc-app/processed/" + xhr.responseText;
             $('#processedImg')
                 .width('100%')
