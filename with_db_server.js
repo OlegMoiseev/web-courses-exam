@@ -182,6 +182,10 @@ app.get('/file_upload', secured(), (req, res) => {
     res.sendFile(__dirname + '/client/html/file_upload.html');
 });
 
+app.get('/profile', secured(), (req, res) => {
+    res.sendFile(__dirname + '/client/html/profile.html');
+});
+
 app.post('/upload', upload.single('file-to-upload'), (req, res) => {
     console.log("Upload called");
     res.send("Uploaded");
@@ -203,6 +207,31 @@ app.get('/getName', (req, res) => {
 
 app.get('/deleteImage', (req, res) => {
     deleteImage(req, res);
+});
+
+app.get('/getInfo', (req, res) => {
+    console.log("In getInfo");
+    let db_req = "SELECT users.id FROM users WHERE users.email = $1";
+    db.one(db_req, req.user._json.email)
+        .then(function (user) {
+            db_req = "SELECT processed_images.id, raw_images.link, filters_list.name, filters_applied.parameters " +
+                "FROM raw_images, filters_applied, processed_images, filters_list " +
+                "WHERE raw_images.id_creator = $1 AND " +
+                "processed_images.id_raw_image = raw_images.id AND " +
+                "filters_applied.id_processed_img = processed_images.id AND " +
+                "filters_applied.id_filter = filters_list.id";
+            db.any(db_req, user.id)
+                .then(function (images) {
+
+                    res.send(images);
+                })
+                .catch(function (error) {
+                    console.log("ERROR in getting raw_images (info):", error.code);
+                });
+        })
+        .catch(function (error) {
+            console.log("ERROR in getting user id (info):", error.code);
+        });
 });
 
 app.post("/addImage", (req, res) => {
@@ -278,6 +307,35 @@ function processImage(name, filters, req, res) {
                                             if (filters[i].name == "To Grayscale") {
                                                 img.convertGrayscale();
                                             }
+
+                                            if (filters[i].name == "Crop") {
+                                                if (filters[i].parameters.length != 4){
+                                                    filters[i].parameters[0] = 100;
+                                                    filters[i].parameters[1] = 100;
+                                                    filters[i].parameters[2] = 100;
+                                                    filters[i].parameters[3] = 100;
+
+                                                }
+                                                let croppedImg = img.crop(Number(filters[i].parameters[0]),
+                                                    Number(filters[i].parameters[1]),
+                                                    Number(filters[i].parameters[2]),
+                                                    Number(filters[i].parameters[3]));
+                                            }
+
+                                            if (filters[i].name == "Dilate") {
+                                                if (filters[i].parameters.length != 4){
+                                                    filters[i].parameters[0] = 1;
+                                                }
+                                                img.dilate(parameters[0]);
+                                            }
+
+                                            if (filters[i].name == "Erode") {
+                                                if (filters[i].parameters.length != 4){
+                                                    filters[i].parameters[0] = 1;
+                                                }
+                                                img.erode(parameters[0]);
+                                            }
+
 
                                             db_req = createReq(filters[i].parameters);
                                             db.none(db_req, [getFilterId(filters[i].name), proc_img.id, i])
@@ -358,14 +416,15 @@ function deleteImage(req, res) {
                         });
                 })
                 .catch(function (error) {
-                        console.log("ERROR in getting raw_img id (3):", error.code);
+                    console.log("ERROR in getting raw_img id (3):", error.code);
                 });
         })
         .catch(function (error) {
-                    console.log("ERROR in getting user id (3):", error.code);
-                });
+            console.log("ERROR in getting user id (3):", error.code);
+        });
 
 }
+
 function createReq(arr) {
     return "INSERT INTO filters_applied (id_filter, id_processed_img, serial_number, parameters) VALUES" +
         "($1, $2, $3, '" + getParameters(arr) + "')";
@@ -402,13 +461,14 @@ function getFilterId(name) {
 
 function getParameters(par) {
     let ret = "{";
-    for (let i = 0; i < par.length; ++i){
+    for (let i = 0; i < par.length; ++i) {
         ret += par[i] + ", "
     }
     if (ret.length > 1) ret = ret.substring(0, ret.length - 2);  // delete "space" and "comma"
     ret += '}';
     return ret;
 }
+
 function getOdd(num) {
     return Math.floor(Number(num) / 2) * 2 + 1;
 }
