@@ -326,16 +326,27 @@ function processImage(name, filters, req, res) {
                                                 if (filters[i].parameters.length != 4){
                                                     filters[i].parameters[0] = 1;
                                                 }
-                                                img.dilate(parameters[0]);
+                                                img.dilate(Number(filters[i].parameters[0]));
                                             }
 
                                             if (filters[i].name == "Erode") {
                                                 if (filters[i].parameters.length != 4){
                                                     filters[i].parameters[0] = 1;
                                                 }
-                                                img.erode(parameters[0]);
+                                                img.erode(Number(filters[i].parameters[0]));
                                             }
 
+                                            if (filters[i].name == "Find contours") {
+                                                img.findContours();
+                                            }
+
+                                            if (filters[i].name == "Rotate") {
+                                                console.log()
+                                                if (filters[i].parameters.length != 1){
+                                                    filters[i].parameters[0] = 0;
+                                                }
+                                                img.rotate(Number(filters[i].parameters[0]));
+                                            }
 
                                             db_req = createReq(filters[i].parameters);
                                             db.none(db_req, [getFilterId(filters[i].name), proc_img.id, i])
