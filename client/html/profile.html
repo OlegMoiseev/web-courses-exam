@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+
+
+    <title>Image processing - Profile</title>
+</head>
+<body onload="getName(), getInfo()">
+<!--Start Navbar-->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="/file_upload">Image processing</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="col-6">
+
+        <div class="collapse navbar-collapse navbar-nav" id="navbarNav">
+
+            <li class="nav-item active">
+                <a class="nav-link" id="accName" href="/profile"></a>
+            </li>
+
+            <li class="nav-item active">
+                <a class="nav-link" href="/login">Logout</a>
+            </li>
+        </div>
+    </div>
+</nav>
+<!--End Navbar-->
+<!--Start main part-->
+<div class="container" id="imgProcContainer"
+     style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%">
+    <div class="row">
+    <div class="col-6" id="allInfo">
+    </div>
+    <div class="col-6" id="procInfo">
+    </div>
+    </div>
+</div>
+
+
+<!--End main part-->
+
+<!--Start scripts-->
+<script>
+    function getName() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/getName', true);
+        xhr.onload = function () {
+            document.getElementById("accName").innerHTML = xhr.responseText;
+        };
+        xhr.onerror = function () {
+            console.log("Error occurred in getting name");
+        };
+        xhr.send();
+    }
+
+    function getInfo() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/getInfo', true);
+        xhr.onload = function () {
+            let js = JSON.parse(xhr.responseText);
+
+            var curImg = -1;
+            for (let i = 0; i < js.length; ++i) {
+                console.log(js[i]);
+
+                if (js[i].id != curImg) {
+                    curImg = js[i].id;
+                    document.getElementById("allInfo").innerHTML +=
+                        "<div class=\"row\" style=\"width: 100%\">" + "<p>" + js[i].id + "</p> " +
+                        "<img src=\"https://s3.eu-west-2.amazonaws.com/images-proc-app/raw/" + js[i].link +
+                        "\" style='width: 50%; height: 50%'>" +
+                        "</div>\n";
+
+                    document.getElementById("procInfo").innerHTML +=
+                        "<div class=\"row\" style=\"width: 100%\">" + "<p>" + js[i].id + "</p> " +
+                        "<img src=\"https://s3.eu-west-2.amazonaws.com/images-proc-app/processed/" + js[i].link +
+                        "\" style='width: 50%; height: 50%'>" +
+                        "</div>\n";
+                }
+
+                if (js[i].parameters.length > 0) {
+                    document.getElementById("allInfo").innerHTML +=
+                        "<div class=\"row\" style=\"width: 100%\" id=\"" +
+                        i + "\">" + js[i].name + " with parameters: " + js[i].parameters + "</div>\n";
+                }
+                else {
+                    document.getElementById("allInfo").innerHTML +=
+                        "<div class=\"row\" style=\"width: 100%\" id=\"" +
+                        i + "\">" + js[i].name + "</div>\n";
+                }
+                document.getElementById("procInfo").innerHTML += "\n<p></p>\n<p></p>\n<p></p>\n"
+
+            }
+        };
+        xhr.onerror = function () {
+            console.log("Error occurred in getting info");
+        };
+        xhr.send();
+    }
+
+    // function getFilterName(id) {
+    //     switch (id) {
+    //         case 1:
+    //             return "Gaussian blur";
+    //         case 2:
+    //             return "Median blur";
+    //         case 3:
+    //             return "Bilateral blur";
+    //         case 4
+    //             return "To Grayscale";
+    //         case 5:
+    //             return "Resize";
+    //         case 6:
+    //             return "Crop";
+    //         case 7:
+    //             return "Rotate";
+    //         case 8:
+    //             return "Flip";
+    //         case 9:
+    //             return "Find contours";
+    //         case 10:
+    //             return "Erode";
+    //         case 11:
+    //             return "Dilate";
+    //         case 12:
+    //             return "Sobel operator";
+    //     }
+    // }
+
+</script>
+<!--End scripts-->
+</body>
+</html>
