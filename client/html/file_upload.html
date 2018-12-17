@@ -111,10 +111,13 @@
                             Add filter
                         </button>
                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton" id="filtersMenu"></div>
+                        <button type="button" class="btn btn-danger" onclick="resetFilters()">Reset filters</button>
+
                         <p></p>
                         <button type="button" class="btn btn-secondary btn-lg btn-block" id="append"
                                 style="display: none;" onclick="applyFilters()">Append filters
                         </button>
+
 
                     </div>
                 </div>
@@ -166,6 +169,10 @@
             '<input type="text" class="form-control" id="' + filterName + '" placeholder="Parameters">' +
             '</div>' +
             '</div>';
+    }
+
+    function resetFilters() {
+        document.getElementById("filtersAppended").innerHTML = "";
     }
 
     function sendFile(input) {
