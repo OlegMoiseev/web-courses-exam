@@ -269,14 +269,9 @@ app.post("/addImage", (req, res) => {
 });
 
 function processImage(name, filters) {
-    getFile(name);
     console.log("We will work with image:");
     console.log(name);
-    console.log("With filters:");
-    console.log(filters);
-}
 
-function getFile(name) {
     var params = {
         Bucket: "images-proc-app",
         Key: name
@@ -286,7 +281,6 @@ function getFile(name) {
             console.log(err, err.stack);
         }
         else {
-            // console.log(data.Body);
             cv.readImage(data.Body, function (err, img) {
                 if (err) {
                     throw err;
@@ -299,10 +293,52 @@ function getFile(name) {
                     throw new Error('Image has no size');
                 }
 
-
+                for (let i = 0; i < filters.length; ++i){
+                    console.log("Filter:" + filters[i].name);
+                    console.log("With parameters: " + filters[i].parameters[0] + ' ' + filters[i].parameters[1]);
+                    if (filters[i].name == "Gaussian blur") { // only odd numbers!!!
+                        if (filters[i].parameters.length != 2){
+                            filters[i].parameters[0] = 11;
+                            filters[i].parameters[1] = 11;
+                        }
+                        img.gaussianBlur([getOdd(filters[i].parameters[0]), getOdd(filters[i].parameters[1])]);
+                    }
+                    if (filters[i].name == "To RGB") {
+                        img.convertGrayscale();
+                    }
+                }
                 img.save('./myNewImage.jpg');
             });
+        }
+    });
+}
 
+function getOdd(num) {
+    return Math.floor(Number(num) / 2) * 2 + 1;
+}
+function getFile(name) {
+    var params = {
+        Bucket: "images-proc-app",
+        Key: name
+    };
+    s3.getObject(params, function (err, data) {
+        if (err) {
+            console.log(err, err.stack);
+        }
+        else {
+            cv.readImage(data.Body, function (err, img) {
+                if (err) {
+                    throw err;
+                }
+
+                const width = img.width();
+                const height = img.height();
+
+                if (width < 1 || height < 1) {
+                    throw new Error('Image has no size');
+                }
+                console.log('Return will be call');
+            });
         }
     });
 }
