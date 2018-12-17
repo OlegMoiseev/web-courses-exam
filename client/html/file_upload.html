@@ -57,22 +57,24 @@
      style="margin-top: 20px; margin-left: 0; margin-right: 0; width: 100%; display: none">
     <div class="row" style="width: 100%">
         <div class="col-6" style="width: 100%">
-            <div class="row" style="width: 100%">
 
-                <div class="card" style="width: 100%">
-                    <h5 class="card-header">Before</h5>
-                    <div class="card-body">
-                        <img id="uploadedImg" src="#" alt="">
-                    </div>
+            <div class="card" style="width: 100%">
+                <h5 class="card-header">Before</h5>
+                <div class="card-body">
+                    <img id="uploadedImg" src="#" alt="">
                 </div>
             </div>
-            <div class="row" id="procImgRow" style="margin-top: 20px; display: none">
-                <div class="card">
-                    <h5 class="card-header">After</h5>
-                    <div class="card-body">
-                        <img id="processedImg" src="#" alt="">
+        </div>
+        <div class="col-6" id="procImgCol" style="width: 100%; display: none">
 
-                        <a href="#" class="btn btn-primary">Go somewhere</a>
+            <div class="card">
+                <h5 class="card-header">After</h5>
+                <div class="card-body">
+                    <img id="processedImg" src="#" alt="">
+
+                    <p></p>
+                    <div>
+                        <a href="#" class="btn btn-primary" id="downloadImgButton">Download file!</a>
                         <a href="#" class="btn btn-primary">Go somewhere</a>
                         <a href="#" class="btn btn-primary">Go somewhere</a>
                     </div>
@@ -91,7 +93,10 @@
                             Add filter
                         </button>
                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton" id="filtersMenu"></div>
-                        <button type="button" class="btn btn-secondary btn-lg btn-block" id="append" style="display: none;" onclick="applyFilters()">Append filters</button>
+                        <p></p>
+                        <button type="button" class="btn btn-secondary btn-lg btn-block" id="append"
+                                style="display: none;" onclick="applyFilters()">Append filters
+                        </button>
 
                     </div>
                 </div>
@@ -151,7 +156,8 @@
             reader.onload = function (e) {
                 $('#uploadedImg')
                     .attr('src', e.target.result)
-                    .width('50%');
+                    .width('100%')
+                    .height('auto');
             };
             reader.readAsDataURL(input.files[0]);
 
@@ -166,13 +172,13 @@
             xhr.open("POST", "/upload");
             xhr.send(formData);
             xhr.onload = function () {
-                if (xhr.responseText == "Uploaded"){
+                if (xhr.responseText == "Uploaded") {
                     document.getElementById('append').style.display = 'block';
                 }
             };
         }
     }
-    
+
     function applyFilters() {
         let input_obj = document.getElementsByClassName('form-control');
         var js = "[";
@@ -191,7 +197,12 @@
         xhr.send(js);
         xhr.onload = function () {
             document.getElementById("processedImg").src = "https://s3.eu-west-2.amazonaws.com/images-proc-app/processed/" + xhr.responseText;
-            document.getElementById('procImgRow').style.display = 'block';
+            document.getElementById("downloadImgButton").href = "https://s3.eu-west-2.amazonaws.com/images-proc-app/processed/" + xhr.responseText;
+            $('#processedImg')
+                .width('100%')
+                .height('auto');
+            document.getElementById('procImgCol').style.display = 'block';
+
         };
     }
 </script>

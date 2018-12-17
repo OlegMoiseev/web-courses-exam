@@ -305,7 +305,7 @@ function processImage(name, filters, res) {
                         }
                         img.gaussianBlur([getOdd(filters[i].parameters[0]), getOdd(filters[i].parameters[1])]);
                     }
-                    if (filters[i].name == "To RGB") {
+                    if (filters[i].name == "To Grayscale") {
                         img.convertGrayscale();
                     }
                 }
