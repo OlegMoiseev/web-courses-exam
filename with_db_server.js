@@ -201,16 +201,9 @@ app.get('/getName', (req, res) => {
     res.send(req.user._json.given_name + " " + req.user._json.family_name);
 });
 
-// app.get('/deleteObject', (req, res) => {
-//     var params = {
-//         Bucket: "images-proc-app",
-//         Key: "objectkey.jpg"
-//     };
-//     s3.deleteObject(params, function(err, data) {
-//         if (err) console.log(err, err.stack); // an error occurred
-//         else     console.log(data);           // successful response
-//     });
-// });
+app.get('/deleteImage', (req, res) => {
+    deleteImage(req, res);
+});
 
 app.post("/addImage", (req, res) => {
 
@@ -332,8 +325,45 @@ function processImage(name, filters, req, res) {
     });
 }
 
-function deleteImage(req) {
+function deleteImage(req, res) {
+    let db_req = "SELECT users.id FROM users WHERE users.email = $1";
+    console.log("email ", req.user._json.email);
 
+    db.one(db_req, req.user._json.email)
+        .then(function (user) {
+            db_req = "SELECT current_work.id_raw_img FROM current_work WHERE current_work.id_user = $1";
+            db.one(db_req, user.id)
+                .then(function (raw_img) {
+                    db_req = "SELECT processed_images.id FROM processed_images WHERE processed_images.id_raw_image = $1";
+                    db.one(db_req, raw_img.id_raw_img)
+                        .then(function (proc_img) {
+                            db_req = "DELETE FROM filters_applied WHERE filters_applied.id_processed_img = $1;";
+                            db.none(db_req, proc_img.id)
+                                .then(function () {
+                                    db_req = "DELETE FROM processed_images WHERE processed_images.id = $1;";
+                                    db.none(db_req, proc_img.id)
+                                        .then(function () {
+                                            res.send("Deleted");
+                                        })
+                                        .catch(function (error) {
+                                            console.log("ERROR in deleting proc img:", error.code);
+                                        });
+                                })
+                                .catch(function (error) {
+                                    console.log("ERROR in deleting applied filters:", error.code);
+                                });
+                        })
+                        .catch(function (error) {
+                            console.log("ERROR in getting proc_img id (3):", error.code);
+                        });
+                })
+                .catch(function (error) {
+                        console.log("ERROR in getting raw_img id (3):", error.code);
+                });
+        })
+        .catch(function (error) {
+                    console.log("ERROR in getting user id (3):", error.code);
+                });
 
 }
 function createReq(arr) {

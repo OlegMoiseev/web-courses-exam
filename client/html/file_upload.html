@@ -78,7 +78,7 @@
                     <p></p>
                     <div>
                         <a href="#" class="btn btn-primary" id="downloadImgButton">Download file!</a>
-                        <a href="#" class="btn btn-primary">Go somewhere</a>
+                        <a href="#" class="btn btn-danger" onclick="deleteImg()">Delete</a>
                         <a href="#" class="btn btn-primary">Go somewhere</a>
                     </div>
                 </div>
@@ -140,6 +140,20 @@
         };
         xhr.onerror = function () {
             console.log("Error occurred in getting filters");
+        };
+        xhr.send();
+    }
+
+    function deleteImg() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/deleteImage', true);
+        xhr.onload = function () {
+            if (xhr.responseText == "Deleted") {
+                document.getElementById('procImgCol').style.display = 'none';
+            }
+        };
+        xhr.onerror = function () {
+            console.log("Error occurred in deleting img");
         };
         xhr.send();
     }
