@@ -8,6 +8,7 @@ const aws = require('aws-sdk');
 const multerS3 = require('multer-s3');
 const cv = require('opencv');
 var fs = require('fs');
+var cors = require('cors');
 
 
 var secured = require('./secured');
@@ -23,6 +24,8 @@ var sess = {
 };
 
 const app = express();
+
+app.use(cors());
 
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies

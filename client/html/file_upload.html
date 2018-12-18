@@ -115,7 +115,7 @@
 <script>
     function getName() {
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', '/getName', true);
+        xhr.open('GET', 'http://localhost:8080/getName', true);
         xhr.onload = function () {
             document.getElementById("accName").innerHTML = xhr.responseText;
         };
